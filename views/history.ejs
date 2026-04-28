@@ -1,0 +1,244 @@
+<%- include('partials/header') %>
+
+<div class="max-w-[1200px] mx-auto px-6 py-10 italic font-black">
+    <div class="flex justify-between items-end mb-8 px-4">
+        <div>
+            <h2 class="text-2xl uppercase tracking-tighter text-white">Allocation History</h2>
+            <p class="text-[10px] text-slate-400 uppercase mt-1">View or Reprint past seating charts</p>
+        </div>
+        
+        <div class="flex gap-4">
+            <button onclick="confirmClearAll()" class="bg-red-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase shadow-lg hover:bg-red-500 transition">
+                🗑️ Clear History
+            </button>
+
+            <button onclick="document.getElementById('swapModal').classList.remove('hidden')" class="bg-amber-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase shadow-lg hover:bg-amber-400 transition">
+                🔄 Swap Hall
+            </button>
+
+            <button onclick="document.getElementById('findModal').classList.remove('hidden')" class="bg-indigo-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase shadow-lg hover:bg-indigo-500 transition">
+                🔍 Student Finder
+            </button>
+
+            <form action="/history" method="GET" class="flex gap-2">
+                <input type="date" name="searchDate" value="<%= searchDate %>" 
+                       class="p-3 border-2 border-slate-100 rounded-xl bg-white text-slate-900 text-[10px] outline-none font-black shadow-inner focus:border-indigo-400 transition-all uppercase">
+                <button type="submit" class="bg-white text-slate-900 border-2 border-slate-100 px-6 rounded-xl text-[10px] uppercase font-black shadow-md hover:bg-slate-50 transition">Filter</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="swapModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border-4 border-amber-500 font-black text-slate-900">
+            <h3 class="text-xl uppercase italic mb-4 text-center text-slate-900">🔄 Room Swap System</h3>
+            <div class="space-y-4">
+                <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 text-center">
+                    <p class="text-[9px] uppercase text-slate-400 mb-2">Step 1: Verify Current Allocation</p>
+                    <input type="text" id="swapRoomNo" placeholder="Enter Room Number" class="w-full p-3 border-2 rounded-xl text-sm mb-2 uppercase outline-none focus:border-amber-500 text-slate-900 font-black">
+                    <div class="flex gap-2">
+                        <input type="date" id="swapDate" class="w-1/2 p-3 border-2 rounded-xl text-xs outline-none text-slate-900 font-black">
+                        <select id="swapSession" class="w-1/2 p-3 border-2 rounded-xl text-xs outline-none text-slate-900 font-black">
+                            <option value="FN">FN (Morning)</option>
+                            <option value="AN">AN (Afternoon)</option>
+                        </select>
+                    </div>
+                    <button onclick="checkRoomForSwap()" class="w-full bg-slate-950 text-white p-3 rounded-xl mt-3 text-[10px] uppercase tracking-widest hover:bg-slate-800 transition">Verify Allocation</button>
+                </div>
+
+                <div id="swapActionArea" class="hidden bg-amber-50 p-4 rounded-2xl border-2 border-amber-100">
+                    <p id="currentAllocInfo" class="text-[10px] text-amber-700 mb-3 uppercase text-center font-black"></p>
+                    <label class="text-[9px] uppercase text-slate-400">Step 2: Select Destination Hall</label>
+                    <select id="availableRoomsSelect" class="w-full p-4 border-2 border-amber-200 rounded-xl text-sm mt-1 outline-none text-slate-900 font-black"></select>
+                    <button onclick="confirmSmartSwap()" class="w-full bg-amber-500 text-white p-4 rounded-xl mt-4 uppercase text-[10px] shadow-lg hover:bg-amber-600 transition">Confirm Swap</button>
+                </div>
+                <button onclick="document.getElementById('swapModal').classList.add('hidden')" class="w-full text-slate-400 text-[10px] uppercase mt-2">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="findModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border-4 border-slate-900 font-black text-slate-900">
+            <h3 class="text-xl font-black uppercase italic mb-4 text-slate-900 text-center">Student Location Finder</h3>
+            <div class="space-y-4">
+                <input type="text" id="findRoll" placeholder="Student Roll Number" class="w-full p-4 border-2 rounded-xl font-black uppercase text-sm outline-none text-slate-900">
+                <input type="date" id="findDate" class="w-full p-4 border-2 rounded-xl font-black text-sm outline-none text-slate-900">
+                <select id="findSession" class="w-full p-4 border-2 rounded-xl font-black text-sm outline-none text-slate-900">
+                    <option value="FN">Forenoon (FN)</option>
+                    <option value="AN">Afternoon (AN)</option>
+                </select>
+                <button onclick="searchStudent()" class="w-full bg-slate-950 text-white p-4 rounded-xl font-black uppercase tracking-widest transition">Search Location</button>
+                <button onclick="document.getElementById('findModal').classList.add('hidden')" class="w-full text-slate-400 text-[10px] font-black uppercase mt-2">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-[3rem] shadow-2xl border overflow-hidden">
+        <table class="w-full text-left text-[11px]">
+            <thead class="bg-slate-950 text-white uppercase italic">
+                <tr>
+                    <th class="p-6">Hall ID</th>
+                    <th class="p-6">Allocation Details</th>
+                    <th class="p-6 text-center">Session</th>
+                    <th class="p-6 text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y text-slate-900">
+                <% if (records && records.length > 0) { %>
+                    <% records.forEach(r => { %>
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-6 font-black text-indigo-600 uppercase">Hall <%= r.room_number %></td>
+                            <td class="p-6 font-bold text-slate-700">
+                                <%= r.branch %> | <%= r.year %> Year 
+                                <br><span class="text-[9px] text-slate-400 font-mono italic">
+                                    Date: <%= new Date(r.exam_date).toISOString().split('T')[0] %>
+                                </span>
+                            </td>
+                            <td class="p-6 text-center">
+                                <span class="bg-slate-100 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase text-slate-600 border border-slate-200">
+                                    <%= r.exam_session %>
+                                </span>
+                            </td>
+                            <td class="p-6 text-center flex gap-3 justify-center items-center">
+                                <form action="/reprint-paper" method="POST" target="_blank" class="m-0 p-0">
+                                    <input type="hidden" name="room_id" value="<%= r.room_id %>">
+                                    <input type="hidden" name="date" value="<%= r.exam_date %>">
+                                    <input type="hidden" name="session" value="<%= r.exam_session %>">
+                                    <button type="submit" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-[9px] uppercase shadow-lg hover:bg-indigo-700 transition font-black italic">Print A4</button>
+                                </form>
+                                <button onclick="confirmDelete(<%= r.id %>)" class="bg-red-50 text-red-500 border border-red-100 px-5 py-2.5 rounded-xl text-[9px] uppercase font-black hover:bg-red-500 hover:text-white transition italic">Remove</button>
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="4" class="p-20 text-center text-slate-300 uppercase font-black italic tracking-widest">No allocations recorded for this selection.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+let activeAllocationId = null;
+
+// --- FORMAL CLEAR ALL ALERT ---
+function confirmClearAll() {
+    Swal.fire({
+        title: 'Action Required',
+        text: "You are about to delete the entire allocation history. This action cannot be undone.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#1e293b',
+        confirmButtonText: 'Confirm Deletion',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) { window.location.href = '/clear-history'; }
+    });
+}
+
+// --- FORMAL SINGLE DELETE ALERT ---
+function confirmDelete(id) {
+    Swal.fire({
+        title: 'Delete Allocation',
+        text: "Are you sure you want to remove this specific record from the database?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#1e293b',
+        confirmButtonText: 'Delete Record',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) { window.location.href = `/delete-allocation/${id}`; }
+    });
+}
+
+// --- SWAP LOGIC ---
+async function checkRoomForSwap() {
+    const roomNo = document.getElementById('swapRoomNo').value;
+    const date = document.getElementById('swapDate').value;
+    const session = document.getElementById('swapSession').value;
+    const actionArea = document.getElementById('swapActionArea');
+
+    if(!roomNo || !date) {
+        Swal.fire({ icon: 'info', title: 'Information Required', text: 'Please provide both Room Number and Date to verify the allocation.' });
+        return;
+    }
+
+    try {
+        const res = await fetch('/get-swap-details', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ room_number: roomNo, date, session })
+        });
+        const data = await res.json();
+
+        if(data.success) {
+            activeAllocationId = data.allocation.id;
+            document.getElementById('currentAllocInfo').innerHTML = `Currently Assigned: <br>${data.allocation.branch} | ${data.allocation.year} Year`;
+            const select = document.getElementById('availableRoomsSelect');
+            if(data.availableRooms.length > 0) {
+                select.innerHTML = data.availableRooms.map(r => `<option value="${r.id}">Target Room: Hall ${r.room_number} (Capacity: ${r.capacity})</option>`).join('');
+                actionArea.classList.remove('hidden');
+            } else { Swal.fire({ icon: 'info', title: 'No Available Resources', text: 'No alternative empty halls were found for this slot.' }); }
+        } else { Swal.fire({ icon: 'error', title: 'Verification Failed', text: data.message }); }
+    } catch(e) { Swal.fire({ icon: 'error', title: 'System Error', text: 'Failed to connect to the server.' }); }
+}
+
+async function confirmSmartSwap() {
+    const new_room_id = document.getElementById('availableRoomsSelect').value;
+    if(!activeAllocationId) return;
+
+    try {
+        const res = await fetch('/swap-room', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ allocation_id: activeAllocationId, new_room_id })
+        });
+        const result = await res.json();
+        if(result.success) {
+            Swal.fire({
+                title: 'Success',
+                text: 'The hall allocation has been updated successfully.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false,
+                willClose: () => { location.reload(); }
+            });
+        }
+    } catch(e) { Swal.fire({ icon: 'error', title: 'Execution Error', text: 'Failed to update the allocation database.' }); }
+}
+
+// --- STUDENT FINDER ---
+async function searchStudent() {
+    const roll_no = document.getElementById('findRoll').value;
+    const date = document.getElementById('findDate').value;
+    const session = document.getElementById('findSession').value;
+
+    if(!roll_no || !date) {
+        Swal.fire({ icon: 'info', title: 'Data Missing', text: 'Please enter a valid Roll Number and Examination Date.' });
+        return;
+    }
+
+    try {
+        const response = await fetch('/find-student-room', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ roll_no: roll_no, date: date, session: session })
+        });
+        const data = await response.json();
+
+        if(data.success) {
+            Swal.fire({
+                title: 'Student Location Identified',
+                html: `Assigned Room Number: <br><span style="font-size: 3rem; color: #4f46e5; font-weight: 900;">${data.room}</span>`,
+                icon: 'success',
+                confirmButtonColor: '#4f46e5'
+            });
+        } else {
+            Swal.fire({ icon: 'error', title: 'No Allocation Found', text: 'The provided Roll Number is not assigned for this session.' });
+        }
+    } catch(e) { Swal.fire({ icon: 'error', title: 'Request Failed', text: 'Unable to communicate with the student database.' }); }
+}
+</script>

@@ -1,0 +1,159 @@
+<%- include('partials/header') %>
+
+<div class="min-h-screen bg-[#020617] text-white p-4 md:p-10 font-black italic">
+    <div class="max-w-[1200px] mx-auto">
+        
+        <div class="mb-12 text-center animate__animated animate__fadeIn">
+            <h2 class="text-5xl uppercase tracking-tighter text-white leading-none">Seating Engine</h2>
+            <p class="text-[10px] text-slate-500 mt-4 tracking-[0.5em] uppercase opacity-70">Official Automated Examination Control</p>
+        </div>
+
+        <form id="allocationForm" action="/generate" method="POST" onsubmit="return validateForm(event)">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+                
+                <div class="lg:col-span-2 bg-slate-900/50 backdrop-blur-xl p-8 rounded-[3rem] border border-white/10 shadow-2xl">
+                    <div class="flex items-center gap-3 mb-8">
+                        <span class="w-8 h-8 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-[10px] not-italic shadow-[0_0_15px_rgba(79,70,229,0.5)]">01</span>
+                        <h3 class="text-[10px] uppercase text-slate-400 tracking-widest">Configuration</h3>
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex-1">
+                            <input type="date" id="exam_date" name="exam_date" value="<%= selDate %>" 
+                                   onchange="location.href='/?date='+this.value+'&session=<%= selSession %>'" 
+                                   class="w-full p-5 border-2 border-white/5 rounded-2xl bg-white text-slate-900 font-black outline-none focus:border-indigo-500 transition-all shadow-inner uppercase">
+                        </div>
+                        <div class="flex gap-2 bg-slate-950 p-2 rounded-2xl border border-white/5">
+                            <button type="button" class="px-8 py-4 rounded-xl text-[10px] transition-all duration-300 <%= selSession=='FN'?'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)] scale-105':'text-slate-500 hover:text-slate-300' %>" onclick="location.href='/?date=<%= selDate %>&session=FN'">FORENOON</button>
+                            <button type="button" class="px-8 py-4 rounded-xl text-[10px] transition-all duration-300 <%= selSession=='AN'?'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)] scale-105':'text-slate-500 hover:text-slate-300' %>" onclick="location.href='/?date=<%= selDate %>&session=AN'">AFTERNOON</button>
+                            <input type="hidden" name="exam_session" value="<%= selSession %>">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-900/20 backdrop-blur-xl p-8 rounded-[3rem] border border-indigo-500/30 shadow-2xl flex flex-col justify-between group hover:border-indigo-500 transition-all duration-500">
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-xl font-black uppercase tracking-tighter leading-tight text-white">Alternate<br>Jumbling</h3>
+                        <div class="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                            <i class="fas fa-shield-alt text-white text-xs"></i>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer mt-8 bg-slate-950/50 p-4 rounded-2xl border border-white/5 hover:border-indigo-500/50 transition-all">
+                        <input type="checkbox" name="jumble_mode" value="true" class="sr-only peer">
+                        <div class="w-12 h-6 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-5 after:left-[20px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                        <span class="ml-3 text-[9px] uppercase text-slate-400 font-black tracking-widest group-hover:text-white transition-colors">Alternate Seating Mode</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-10 animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+                <div class="flex items-center gap-3 mb-8 px-4">
+                    <span class="w-8 h-8 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-[10px] not-italic shadow-[0_0_15px_rgba(79,70,229,0.5)]">02</span>
+                    <h3 class="text-[10px] uppercase text-slate-400 tracking-widest">Target Academic Year</h3>
+                </div>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <% [1,2,3,4].forEach(y => { %>
+                        <div class="relative group">
+                            <input type="radio" name="selected_year" value="<%= y %>" id="yr_<%= y %>" class="hidden peer" onclick="showBranches(<%= y %>)">
+                            <label for="yr_<%= y %>" class="block p-10 bg-slate-900/50 border-2 border-white/5 rounded-[3rem] cursor-pointer text-center transition-all duration-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-600/20 peer-checked:scale-[1.02] peer-checked:shadow-[0_0_40px_rgba(79,70,229,0.2)] hover:border-white/20">
+                                <h4 class="text-2xl uppercase tracking-tighter text-white"><%= y %><%= y==1?'ST':y==2?'ND':y==3?'RD':'TH' %> YEAR</h4>
+                                <p class="text-[9px] text-slate-500 font-mono mt-2 group-hover:text-indigo-400 transition-colors"><%= stats[y] ? stats[y].total : 0 %> REGISTRY ENTRIES</p>
+                            </label>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+
+            <div id="branchSection" class="hidden mb-10 transform transition-all duration-700">
+                <div class="bg-slate-900 p-10 rounded-[4rem] border border-white/5 shadow-inner">
+                    <h3 class="text-[10px] uppercase text-indigo-400 mb-8 tracking-[0.4em] text-center italic">Department Deployment</h3>
+                    <div id="branchList" class="flex flex-wrap justify-center gap-4"></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-12 rounded-[4rem] shadow-[0_30px_100px_rgba(0,0,0,0.5)] text-slate-900 relative overflow-hidden animate__animated animate__fadeInUp" style="animation-delay: 0.4s">
+                <div class="flex items-center gap-3 mb-12">
+                    <span class="w-8 h-8 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-[10px] not-italic">03</span>
+                    <h3 class="text-[10px] uppercase text-slate-500 tracking-widest font-black">Infrastructure Assets</h3>
+                </div>
+                
+                <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 gap-3 mb-14">
+                    <% rooms.forEach(r => { %>
+                        <div class="relative group">
+                            <input type="checkbox" name="selected_rooms" value="<%= r.id %>" id="rm_<%= r.id %>" 
+                                   class="hidden peer" <%= bookedIds.includes(r.id) ? 'disabled' : '' %>>
+                            
+                            <label for="rm_<%= r.id %>" 
+                                   class="block py-6 border-2 border-slate-100 rounded-2xl bg-slate-50 cursor-pointer text-center font-black transition-all duration-300
+                                          text-slate-900 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 peer-checked:scale-110 peer-checked:shadow-2xl
+                                          <%= bookedIds.includes(r.id) ? 'opacity-10 cursor-not-allowed grayscale bg-slate-200' : 'hover:border-indigo-400 hover:bg-white group-hover:-translate-y-2' %>">
+                                <div class="text-[14px] uppercase tracking-tighter"><%= r.room_number %></div>
+                            </label>
+                        </div>
+                    <% }) %>
+                </div>
+
+                <button type="submit" class="w-full bg-slate-950 text-white py-8 rounded-[2.5rem] text-sm font-black shadow-[0_20px_50px_rgba(0,0,0,0.4)] hover:bg-black hover:scale-[1.01] active:scale-95 transition-all duration-500 uppercase tracking-[0.5em] flex items-center justify-center gap-6 group">
+                    <span>Generate Official Allocation Plan</span>
+                    <i class="fas fa-chevron-right text-[10px] opacity-40 group-hover:translate-x-2 transition-transform"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const allStats = <%- JSON.stringify(stats) %>;
+
+    function showBranches(year) {
+        const section = document.getElementById('branchSection');
+        const list = document.getElementById('branchList');
+        section.classList.remove('hidden');
+        list.innerHTML = '';
+        const brs = ['CSE', 'AIML', 'CSDS', 'MECH', 'CIVIL', 'ECE'];
+        brs.forEach((b, index) => {
+            const count = (allStats[year] && allStats[year].branches[b]) || 0;
+            list.innerHTML += `
+                <div class="relative animate__animated animate__fadeInUp" style="animation-delay: ${index * 0.1}s">
+                    <input type="checkbox" name="selected_branches" value="${b}" id="br_${b}" class="hidden peer">
+                    <label for="br_${b}" class="block px-10 py-5 border-2 border-white/5 bg-slate-950 text-slate-500 rounded-3xl cursor-pointer font-black text-[11px] uppercase transition-all duration-300 peer-checked:bg-white peer-checked:text-slate-950 peer-checked:border-white peer-checked:shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                        ${b} <span class="ml-2 opacity-30 font-mono">${count}</span>
+                    </label>
+                </div>`;
+        });
+        section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function validateForm(event) {
+        event.preventDefault();
+        const year = document.querySelector('input[name="selected_year"]:checked');
+        const branches = document.querySelectorAll('input[name="selected_branches"]:checked');
+        const rooms = document.querySelectorAll('input[name="selected_rooms"]:checked');
+
+        if (!year || branches.length === 0 || rooms.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Incomplete Selection',
+                text: 'Please ensure Year, Branch, and Halls are selected properly.',
+                confirmButtonColor: '#4f46e5',
+                background: '#0f172a',
+                color: '#fff'
+            });
+            return false;
+        }
+
+        Swal.fire({
+            title: 'Generating Plan',
+            text: 'Allocating resources and optimizing seating arrangements...',
+            background: '#0f172a',
+            color: '#fff',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+                document.getElementById('allocationForm').submit();
+            }
+        });
+        return true;
+    }
+</script>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRIET Smart EMS</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;900&display=swap" rel="stylesheet">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <style>
+        /* Global Styles */
+        body { 
+            font-family: 'Lexend', sans-serif; 
+            background-color: #020617; /* Dark Slate Blue */
+            color: white;
+        }
+        
+        /* Custom Scrollbar for Premium Feel */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+
+        @media print { .no-print { display: none !important; } }
+    </style>
+</head>
+<body class="bg-[#020617]">
+
+<nav class="sticky top-0 z-[100] bg-[#020617]/90 backdrop-blur-xl border-b border-white/5 no-print font-black italic">
+    <div class="max-w-[1400px] mx-auto flex justify-between items-center px-8 py-4 uppercase">
+        
+        <a href="/" class="flex items-center gap-4 group">
+            <div class="bg-indigo-600 p-2.5 rounded-2xl shadow-[0_0_20px_rgba(79,70,229,0.4)] group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
+                <i class="fas fa-random text-white text-xs"></i>
+            </div>
+            <div class="flex flex-col leading-none">
+                <h1 class="text-sm tracking-tighter text-white group-hover:text-indigo-400 transition-colors">GRIET SMART EMS</h1>
+                <span class="text-[7px] text-slate-500 tracking-[0.4em] mt-1 not-italic">Institutional Portal</span>
+            </div>
+        </a>
+
+        <div class="hidden md:flex gap-1 items-center">
+            <% const links = [
+                { name: 'Dashboard', url: '/', icon: 'fa-gauge-high' },
+                { name: 'History', url: '/history', icon: 'fa-clock-rotate-left' },
+                { name: 'Registry', url: '/manage-students', icon: 'fa-users-gear' },
+                { name: 'Halls', url: '/manage-rooms', icon: 'fa-building-shield' }
+            ]; %>
+
+            <% links.forEach(link => { %>
+                <a href="<%= link.url %>" class="relative px-5 py-2.5 rounded-xl text-[10px] tracking-[0.1em] text-slate-400 hover:text-white hover:bg-white/5 transition-all group flex items-center gap-2">
+                    <i class="fas <%= link.icon %> opacity-30 group-hover:opacity-100 group-hover:text-indigo-400 transition-all"></i>
+                    <span><%= link.name %></span>
+                </a>
+            <% }) %>
+
+            <div class="w-px h-6 bg-white/10 mx-4"></div>
+
+            <div class="flex items-center gap-3">
+                <div class="text-right">
+                    <p class="text-[8px] text-white leading-none">ADMIN ACCESS</p>
+                    <p class="text-[7px] text-emerald-500 mt-1 flex items-center justify-end gap-1 font-black">
+                        <span class="w-1 h-1 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></span>
+                        SYSTEM LIVE
+                    </p>
+                </div>
+                <div class="w-10 h-10 rounded-2xl bg-slate-900 border border-white/5 flex items-center justify-center text-slate-500 hover:text-indigo-400 transition-all cursor-pointer">
+                    <i class="fas fa-user-shield text-xs"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
