@@ -173,10 +173,13 @@ exports.findStudentRoom = async (req, res) => {
     try {
         const { roll_no, date, session } = req.body;
         
+        // Use UPPER to prevent case-sensitivity issues
+        const cleanRoll = roll_no.toUpperCase();
+        
         // 1. Get the student's branch and year
         const [student] = await db.execute(
             'SELECT branch, year FROM students WHERE roll_no = ?', 
-            [roll_no]
+            [cleanRoll]
         );
 
         if (student.length === 0) {
@@ -185,15 +188,15 @@ exports.findStudentRoom = async (req, res) => {
 
         const { branch, year } = student[0];
 
-        // 2. Find the student's position (Rank) in their specific branch/year
+        // 2. Find the student's Rank in their branch/year
         const [rankRes] = await db.execute(
             `SELECT COUNT(*) as rank FROM students 
              WHERE branch = ? AND year = ? AND roll_no <= ?`,
-            [branch, year, roll_no]
+            [branch, year, cleanRoll]
         );
         const studentRank = rankRes[0].rank;
 
-        // 3. Get all halls allocated for this batch
+        // 3. Match against allocations for the EXACT date and session
         const [halls] = await db.execute(
             `SELECT r.room_number, r.capacity 
              FROM room_allocations ra 
@@ -203,7 +206,7 @@ exports.findStudentRoom = async (req, res) => {
             [branch, year, date, session]
         );
 
-        // 4. Match the student's rank to the correct room boundary
+        // 4. Calculate which hall boundary contains this rank
         let currentMax = 0;
         let assignedRoom = null;
 
@@ -221,11 +224,12 @@ exports.findStudentRoom = async (req, res) => {
         if (assignedRoom) {
             res.json({ success: true, room: assignedRoom });
         } else {
-            res.json({ success: false, message: 'No allocation found for this student today' });
+            // This is the part that was triggering[cite: 1]
+            res.json({ success: false, message: 'No allocation found for this date/session' });
         }
     } catch (error) {
-        console.error("Student Finder DB Error:", error);
-        res.status(500).json({ success: false, message: 'Database error occurred' });
+        console.error("Finder Error:", error);
+        res.status(500).json({ success: false, message: 'Database error' });
     }
 };
 
