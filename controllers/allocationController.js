@@ -180,12 +180,12 @@ exports.findStudentRoom = async (req, res) => {
         );
 
         if (student.length === 0) {
-            return res.json({ success: false, message: 'Student not found in registry' });[cite: 1]
+            return res.json({ success: false, message: 'Student not found in registry' });
         }
 
         const { branch, year } = student[0];
 
-        // 2. Find the student's "Rank" in their branch/year to distinguish halls
+        // 2. Find the student's "Rank" in their branch/year
         const [rankRes] = await db.execute(
             `SELECT COUNT(*) as rank FROM students 
              WHERE branch = ? AND year = ? AND roll_no <= ?`,
@@ -193,7 +193,7 @@ exports.findStudentRoom = async (req, res) => {
         );
         const studentRank = rankRes[0].rank;
 
-        // 3. Get all halls allocated for this specific batch, ordered by allocation ID
+        // 3. Get all halls allocated for this specific batch
         const [halls] = await db.execute(
             `SELECT r.room_number, r.capacity 
              FROM room_allocations ra 
@@ -219,13 +219,13 @@ exports.findStudentRoom = async (req, res) => {
         }
 
         if (assignedRoom) {
-            res.json({ success: true, room: assignedRoom });[cite: 1]
+            res.json({ success: true, room: assignedRoom });
         } else {
-            res.json({ success: false, message: 'No allocation found for this student today' });[cite: 1]
+            res.json({ success: false, message: 'No allocation found for this student today' });
         }
     } catch (error) {
         console.error("Student Finder DB Error:", error);
-        res.status(500).json({ success: false, message: 'Database error occurred' });[cite: 1]
+        res.status(500).json({ success: false, message: 'Database error occurred' });
     }
 };
 
