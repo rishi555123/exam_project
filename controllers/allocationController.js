@@ -185,7 +185,7 @@ exports.findStudentRoom = async (req, res) => {
 
         const { branch, year } = student[0];
 
-        // 2. Find the student's "Rank" in their branch/year
+        // 2. Find the student's position (Rank) in their specific branch/year
         const [rankRes] = await db.execute(
             `SELECT COUNT(*) as rank FROM students 
              WHERE branch = ? AND year = ? AND roll_no <= ?`,
@@ -193,7 +193,7 @@ exports.findStudentRoom = async (req, res) => {
         );
         const studentRank = rankRes[0].rank;
 
-        // 3. Get all halls allocated for this specific batch
+        // 3. Get all halls allocated for this batch
         const [halls] = await db.execute(
             `SELECT r.room_number, r.capacity 
              FROM room_allocations ra 
