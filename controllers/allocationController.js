@@ -173,13 +173,60 @@ exports.manageStudents = async (req, res) => {
 exports.findStudentRoom = async (req, res) => {
     try {
         const { roll_no, date, session } = req.body;
-        const [student] = await db.execute('SELECT branch, year FROM students WHERE roll_no = ?', [roll_no]);
+        
+        // 1. Get the student's branch and year
+        const [student] = await db.execute(
+            'SELECT branch, year FROM students WHERE roll_no = ?', 
+            [roll_no]
+        );
+
         if (student.length === 0) return res.json({ success: false, message: 'Student not found' });
+
         const { branch, year } = student[0];
-        const [alloc] = await db.execute(`SELECT r.room_number FROM room_allocations ra JOIN rooms r ON ra.room_id = r.id WHERE ra.branch = ? AND ra.year = ? AND ra.exam_date = ? AND ra.exam_session = ? LIMIT 1`, [branch, year, date, session]);
-        if (alloc.length > 0) res.json({ success: true, room: alloc[0].room_number });
-        else res.json({ success: false, message: 'No allocation found' });
-    } catch (err) { res.status(500).json({ success: false, message: 'DB Error' }); }
+
+        // 2. Find the student's "Rank" (Position) in their branch/year
+        // This tells us if they are the 1st student, 33rd student, etc.
+        const [rankRes] = await db.execute(
+            `SELECT COUNT(*) as rank FROM students 
+             WHERE branch = ? AND year = ? AND roll_no <= ?`,
+            [branch, year, roll_no]
+        );
+        const studentRank = rankRes[0].rank;
+
+        // 3. Get all halls allocated for this branch/year/session
+        const [halls] = await db.execute(
+            `SELECT r.room_number, r.capacity 
+             FROM room_allocations ra 
+             JOIN rooms r ON ra.room_id = r.id 
+             WHERE ra.branch = ? AND ra.year = ? AND ra.exam_date = ? AND ra.exam_session = ?
+             ORDER BY r.id ASC`,
+            [branch, year, date, session]
+        );
+
+        // 4. Loop through the halls to see which one contains this student's rank
+        let currentMax = 0;
+        let assignedRoom = null;
+
+        for (let hall of halls) {
+            let hallStart = currentMax + 1;
+            let hallEnd = currentMax + hall.capacity;
+            
+            if (studentRank >= hallStart && studentRank <= hallEnd) {
+                assignedRoom = hall.room_number;
+                break;
+            }
+            currentMax = hallEnd;
+        }
+
+        if (assignedRoom) {
+            res.json({ success: true, room: assignedRoom });
+        } else {
+            res.json({ success: false, message: 'No allocation found for this student today' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Database error' });
+    }
 };
 
 // 8. SWAP & BULK
