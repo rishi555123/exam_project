@@ -169,7 +169,6 @@ exports.manageStudents = async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 };
 
-// 7. FIND STUDENT ROOM
 exports.findStudentRoom = async (req, res) => {
     try {
         const { roll_no, date, session } = req.body;
@@ -180,12 +179,13 @@ exports.findStudentRoom = async (req, res) => {
             [roll_no]
         );
 
-        if (student.length === 0) return res.json({ success: false, message: 'Student not found' });
+        if (student.length === 0) {
+            return res.json({ success: false, message: 'Student not found in registry' });[cite: 1]
+        }
 
         const { branch, year } = student[0];
 
-        // 2. Find the student's "Rank" (Position) in their branch/year
-        // This tells us if they are the 1st student, 33rd student, etc.
+        // 2. Find the student's "Rank" in their branch/year to distinguish halls
         const [rankRes] = await db.execute(
             `SELECT COUNT(*) as rank FROM students 
              WHERE branch = ? AND year = ? AND roll_no <= ?`,
@@ -193,17 +193,17 @@ exports.findStudentRoom = async (req, res) => {
         );
         const studentRank = rankRes[0].rank;
 
-        // 3. Get all halls allocated for this branch/year/session
+        // 3. Get all halls allocated for this specific batch, ordered by allocation ID
         const [halls] = await db.execute(
             `SELECT r.room_number, r.capacity 
              FROM room_allocations ra 
              JOIN rooms r ON ra.room_id = r.id 
              WHERE ra.branch = ? AND ra.year = ? AND ra.exam_date = ? AND ra.exam_session = ?
-             ORDER BY r.id ASC`,
+             ORDER BY ra.id ASC`, 
             [branch, year, date, session]
         );
 
-        // 4. Loop through the halls to see which one contains this student's rank
+        // 4. Match the student's rank to the correct room boundary
         let currentMax = 0;
         let assignedRoom = null;
 
@@ -219,13 +219,13 @@ exports.findStudentRoom = async (req, res) => {
         }
 
         if (assignedRoom) {
-            res.json({ success: true, room: assignedRoom });
+            res.json({ success: true, room: assignedRoom });[cite: 1]
         } else {
-            res.json({ success: false, message: 'No allocation found for this student today' });
+            res.json({ success: false, message: 'No allocation found for this student today' });[cite: 1]
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Database error' });
+        console.error("Student Finder DB Error:", error);
+        res.status(500).json({ success: false, message: 'Database error occurred' });[cite: 1]
     }
 };
 
