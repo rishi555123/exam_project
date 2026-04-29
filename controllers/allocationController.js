@@ -333,17 +333,38 @@ exports.manageStudents = async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 };
 
+// Add this to allocationController.js
 exports.findStudentRoom = async (req, res) => {
     try {
-        if (!req.body || !req.body.roll_no) return res.status(400).json({ success: false, message: "Invalid Request!" });
         const { roll_no, date, session } = req.body;
-        const [student] = await db.query("SELECT branch, year FROM students WHERE roll_no = ?", [roll_no]);
-        if (student.length === 0) return res.json({ success: false, message: "Student Not Found!" });
-        const { branch, year } = student[0];
-        const [allocations] = await db.query(`SELECT ra.room_id, r.room_number FROM room_allocations ra JOIN rooms r ON ra.room_id = r.id WHERE DATE(ra.exam_date) = ? AND ra.exam_session = ? AND ra.branch LIKE ? AND ra.year = ?`, [date, session, `%${branch}%`, year]);
-        if (allocations.length === 0) return res.json({ success: false, message: "No Allocation found!" });
-        res.json({ success: true, room: allocations[0].room_number });
-    } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+        
+        // Step 1: Get the student's branch and year
+        const [student] = await db.execute(
+            'SELECT branch, year FROM students WHERE roll_no = ?', 
+            [roll_no]
+        );
+
+        if (student.length === 0) {
+            return res.json({ success: false, message: 'Student not found in registry' });
+        }
+
+        // Step 2: Find which room that branch/year is assigned to on that date/session
+        const [allocation] = await db.execute(
+            `SELECT rooms.room_number 
+             FROM room_allocations 
+             JOIN rooms ON room_allocations.room_id = rooms.id 
+             WHERE branch = ? AND year = ? AND exam_date = ? AND exam_session = ?`,
+            [student[0].branch, student[0].year, date, session]
+        );
+
+        if (allocation.length > 0) {
+            res.json({ success: true, room: allocation[0].room_number });
+        } else {
+            res.json({ success: false, message: 'No allocation found for this session' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Database error' });
+    }
 };
 
 exports.swapRoomAction = async (req, res) => {
