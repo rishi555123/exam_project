@@ -198,12 +198,12 @@ exports.generatePlan = async (req, res) => {
 exports.reprintPaper = async (req, res) => {
     try {
         const { room_id, date, session } = req.body;
-        
-        // 1. Format the date correctly for the database query
+        if (!room_id || !date || !session) return res.status(400).send("Missing parameters");
+
         const d = new Date(date);
         const formattedDate = d.toISOString().split('T')[0];
 
-        // 2. Fetch the specific allocation for this room/date/session
+        // 1. Get Room & Allocation Data
         const [alloc] = await db.query(
             `SELECT ra.*, r.room_number, r.capacity 
              FROM room_allocations ra 
@@ -213,53 +213,39 @@ exports.reprintPaper = async (req, res) => {
         );
 
         if (!alloc || alloc.length === 0) {
-            return res.status(404).send("No record found! Please clear history and generate a fresh plan.");[cite: 2]
+            return res.status(404).send("Allocation not found in database.");
         }
 
         const { branch, year, capacity, room_number } = alloc[0];
 
-        // 3. THE MAGIC FIX: Calculate how many students to skip
-        // Count how many halls for this SAME branch/year/session have a lower room_id
-        const [previousHalls] = await db.query(
+        // 2. Skip Logic to prevent Hall-01 repetition
+        const [prev] = await db.query(
             `SELECT COUNT(*) as count FROM room_allocations 
              WHERE branch = ? AND year = ? AND exam_date = ? AND exam_session = ? 
              AND room_id < ?`,
             [branch, year, formattedDate, session, room_id]
         );
 
-        const skipCount = previousHalls[0].count * capacity;
+        const skip = prev[0].count * capacity;
 
-        // 4. Fetch the specific batch of students using LIMIT and OFFSET
+        // 3. Fetch Students
         const [students] = await db.query(
             `SELECT roll_no, name, year, branch FROM students 
              WHERE branch = ? AND year = ? 
              ORDER BY roll_no ASC 
              LIMIT ? OFFSET ?`, 
-            [branch, year, capacity, skipCount]
+            [branch, year, capacity, skip]
         );
 
-        // 5. Define Year Colors for the UI
-        const yrColors = { 
-            1: 'bg-blue-50', 
-            2: 'bg-emerald-50', 
-            3: 'bg-amber-50', 
-            4: 'bg-violet-50' 
-        };
+        const yrColors = { 1: 'bg-blue-50', 2: 'bg-emerald-50', 3: 'bg-amber-50', 4: 'bg-violet-50' };
 
-        // 6. Render the A4 print view[cite: 1]
         res.render('print-view', { 
-            students, 
-            room_number, 
-            branch, 
-            year, 
-            date: formattedDate, 
-            session,
-            yrColors 
+            students, room_number, branch, year, date: formattedDate, session, yrColors 
         });
 
     } catch (error) {
-        console.error("Reprint Error:", error);
-        res.status(500).send("Internal Server Error during printing.");
+        console.error("Critical Reprint Error:", error);
+        res.status(500).send("Server Error: " + error.message);
     }
 };
         // --- SEATING CHART HTML ---
