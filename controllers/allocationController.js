@@ -172,64 +172,85 @@ exports.manageStudents = async (req, res) => {
 exports.findStudentRoom = async (req, res) => {
     try {
         const { roll_no, date, session } = req.body;
-        
-        // Use UPPER to prevent case-sensitivity issues
-        const cleanRoll = roll_no.toUpperCase();
-        
-        // 1. Get the student's branch and year
+        const cleanRoll = roll_no.trim().toUpperCase();
+
+        // 1. Verify student exists
         const [student] = await db.execute(
-            'SELECT branch, year FROM students WHERE roll_no = ?', 
+            'SELECT branch, year FROM students WHERE UPPER(roll_no) = ?',
             [cleanRoll]
         );
 
         if (student.length === 0) {
-            return res.json({ success: false, message: 'Student not found in registry' });
+            return res.json({ success: false, message: 'Student not found in registry. Check the roll number.' });
         }
 
         const { branch, year } = student[0];
 
-        // 2. Find the student's Rank in their branch/year
-        const [rankRes] = await db.execute(
-            `SELECT COUNT(*) as rank FROM students 
-             WHERE branch = ? AND year = ? AND roll_no <= ?`,
-            [branch, year, cleanRoll]
-        );
-        const studentRank = rankRes[0].rank;
-
-        // 3. Match against allocations for the EXACT date and session
+        // 2. Get all allocations for this date/session that include this student's branch+year,
+        //    ordered by allocation id (same order rooms were filled during generatePlan)
         const [halls] = await db.execute(
-            `SELECT r.room_number, r.capacity 
-             FROM room_allocations ra 
-             JOIN rooms r ON ra.room_id = r.id 
-             WHERE ra.branch = ? AND ra.year = ? AND ra.exam_date = ? AND ra.exam_session = ?
-             ORDER BY ra.id ASC`, 
-            [branch, year, date, session]
+            `SELECT r.room_number, r.capacity, ra.start_roll_no, ra.id
+             FROM room_allocations ra
+             JOIN rooms r ON ra.room_id = r.id
+             WHERE ra.exam_date = ? AND ra.exam_session = ?
+             AND ra.branch LIKE ? AND ra.year = ?
+             ORDER BY ra.id ASC`,
+            [date, session, `%${branch}%`, year]
         );
 
-        // 4. Calculate which hall boundary contains this rank
-        let currentMax = 0;
+        if (halls.length === 0) {
+            return res.json({ success: false, message: 'No exam allocation found for this date and session.' });
+        }
+
+        // 3. For each hall, get the actual students placed in it (in the same order as generatePlan)
+        //    by fetching students ordered by branch,roll_no from start_roll_no offset
+        //    We do this by finding the position of start_roll_no and slicing capacity students
+        
+        // Get all students for this branch+year sorted exactly like generatePlan does
+        const [allStudents] = await db.execute(
+            `SELECT roll_no FROM students
+             WHERE branch = ? AND year = ?
+             ORDER BY branch, roll_no ASC`,
+            [branch, year]
+        );
+
+        const allRolls = allStudents.map(s => s.roll_no.toUpperCase());
+        const studentIndex = allRolls.indexOf(cleanRoll);
+
+        if (studentIndex === -1) {
+            return res.json({ success: false, message: 'Student found in registry but roll number mismatch. Contact admin.' });
+        }
+
+        // 4. Walk through halls and find which one covers studentIndex
+        let offset = 0;
         let assignedRoom = null;
 
         for (let hall of halls) {
-            let hallStart = currentMax + 1;
-            let hallEnd = currentMax + hall.capacity;
-            
-            if (studentRank >= hallStart && studentRank <= hallEnd) {
+            const startRoll = hall.start_roll_no.toUpperCase();
+            const startIndex = allRolls.indexOf(startRoll);
+
+            // Use start_roll_no to anchor the offset for the first hall
+            if (offset === 0 && startIndex !== -1) {
+                offset = startIndex;
+            }
+
+            const hallEnd = offset + hall.capacity - 1;
+
+            if (studentIndex >= offset && studentIndex <= hallEnd) {
                 assignedRoom = hall.room_number;
                 break;
             }
-            currentMax = hallEnd;
+            offset = hallEnd + 1;
         }
 
         if (assignedRoom) {
             res.json({ success: true, room: assignedRoom });
         } else {
-            // This is the part that was triggering[cite: 1]
-            res.json({ success: false, message: 'No allocation found for this date/session' });
+            res.json({ success: false, message: 'Student is registered but not allocated for this date/session.' });
         }
     } catch (error) {
         console.error("Finder Error:", error);
-        res.status(500).json({ success: false, message: 'Database error' });
+        res.status(500).json({ success: false, message: 'Database error: ' + error.message });
     }
 };
 
