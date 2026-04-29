@@ -338,31 +338,39 @@ exports.findStudentRoom = async (req, res) => {
     try {
         const { roll_no, date, session } = req.body;
         
-        // Step 1: Get the student's branch and year
-        const [student] = await db.execute(
+        // 1. Get student details first
+        const [studentRows] = await db.execute(
             'SELECT branch, year FROM students WHERE roll_no = ?', 
             [roll_no]
         );
 
-        if (student.length === 0) {
-            return res.json({ success: false, message: 'Student not found in registry' });
+        if (studentRows.length === 0) {
+            return res.json({ success: false, message: 'Student not found' });
         }
 
-        // Step 2: Find which room that branch/year is assigned to on that date/session
-        const [allocation] = await db.execute(
+        const { branch, year } = studentRows[0];
+
+        // 2. FIND THE SPECIFIC ALLOCATION
+        // We use ORDER BY id DESC to get the latest allocation if there are duplicates
+        const [allocRows] = await db.execute(
             `SELECT rooms.room_number 
              FROM room_allocations 
              JOIN rooms ON room_allocations.room_id = rooms.id 
-             WHERE branch = ? AND year = ? AND exam_date = ? AND exam_session = ?`,
-            [student[0].branch, student[0].year, date, session]
+             WHERE room_allocations.branch = ? 
+             AND room_allocations.year = ? 
+             AND room_allocations.exam_date = ? 
+             AND room_allocations.exam_session = ?
+             LIMIT 1`, 
+            [branch, year, date, session]
         );
 
-        if (allocation.length > 0) {
-            res.json({ success: true, room: allocation[0].room_number });
+        if (allocRows.length > 0) {
+            res.json({ success: true, room: allocRows[0].room_number });
         } else {
-            res.json({ success: false, message: 'No allocation found for this session' });
+            res.json({ success: false, message: 'No allocation found for this student today' });
         }
     } catch (error) {
+        console.error(error);
         res.status(500).json({ success: false, message: 'Database error' });
     }
 };
