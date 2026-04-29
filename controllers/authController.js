@@ -7,8 +7,8 @@ exports.getLogin = (req, res) => {
 
 exports.postLogin = (req, res) => {
     const { username, password } = req.body;
-    const validUser = process.env.ADMIN_USERNAME || 'admin';
-    const validPass = process.env.ADMIN_PASSWORD || 'griet@2024';
+    const validUser = process.env.ADMIN_USERNAME || '24241A0555';
+    const validPass = process.env.ADMIN_PASSWORD || '12345678';
 
     if (username === validUser && password === validPass) {
         req.session.isAdmin = true;
