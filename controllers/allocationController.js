@@ -199,37 +199,69 @@ exports.reprintPaper = async (req, res) => {
     try {
         const { room_id, date, session } = req.body;
         
-        // Step 1: Force strict YYYY-MM-DD format
+        // 1. Format the date correctly for the database query
         const d = new Date(date);
-        const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const formattedDate = d.toISOString().split('T')[0];
 
-        // Step 2: Fetch Room & Allocation
-        const [roomData] = await db.query("SELECT * FROM rooms WHERE id = ?", [room_id]);
+        // 2. Fetch the specific allocation for this room/date/session
         const [alloc] = await db.query(
-            "SELECT * FROM room_allocations WHERE room_id = ? AND exam_date = ? AND exam_session = ?", 
+            `SELECT ra.*, r.room_number, r.capacity 
+             FROM room_allocations ra 
+             JOIN rooms r ON ra.room_id = r.id 
+             WHERE ra.room_id = ? AND ra.exam_date = ? AND ra.exam_session = ?`, 
             [room_id, formattedDate, session]
         );
 
         if (!alloc || alloc.length === 0) {
-            return res.status(404).send("No record found! Please Clear History and Generate again.");
+            return res.status(404).send("No record found! Please clear history and generate a fresh plan.");[cite: 2]
         }
 
-        const branches = alloc[0].branch.split(',').map(b => b.trim());
-        const [students] = await db.query(
-            `SELECT roll_no, name, year, branch FROM students 
-             WHERE year = ? AND branch IN (?) AND roll_no >= ? 
-             ORDER BY branch, roll_no ASC LIMIT ?`, 
-            [alloc[0].year, branches, alloc[0].start_roll_no, roomData[0].capacity]
+        const { branch, year, capacity, room_number } = alloc[0];
+
+        // 3. THE MAGIC FIX: Calculate how many students to skip
+        // Count how many halls for this SAME branch/year/session have a lower room_id
+        const [previousHalls] = await db.query(
+            `SELECT COUNT(*) as count FROM room_allocations 
+             WHERE branch = ? AND year = ? AND exam_date = ? AND exam_session = ? 
+             AND room_id < ?`,
+            [branch, year, formattedDate, session, room_id]
         );
 
-        // --- YEAR COLORS DEFINITION ---
+        const skipCount = previousHalls[0].count * capacity;
+
+        // 4. Fetch the specific batch of students using LIMIT and OFFSET
+        const [students] = await db.query(
+            `SELECT roll_no, name, year, branch FROM students 
+             WHERE branch = ? AND year = ? 
+             ORDER BY roll_no ASC 
+             LIMIT ? OFFSET ?`, 
+            [branch, year, capacity, skipCount]
+        );
+
+        // 5. Define Year Colors for the UI
         const yrColors = { 
-            1: 'bg-blue-50',     // 1st Year
-            2: 'bg-emerald-50',  // 2nd Year
-            3: 'bg-amber-50',    // 3rd Year
-            4: 'bg-violet-50'    // 4th Year
+            1: 'bg-blue-50', 
+            2: 'bg-emerald-50', 
+            3: 'bg-amber-50', 
+            4: 'bg-violet-50' 
         };
 
+        // 6. Render the A4 print view[cite: 1]
+        res.render('print-view', { 
+            students, 
+            room_number, 
+            branch, 
+            year, 
+            date: formattedDate, 
+            session,
+            yrColors 
+        });
+
+    } catch (error) {
+        console.error("Reprint Error:", error);
+        res.status(500).send("Internal Server Error during printing.");
+    }
+};
         // --- SEATING CHART HTML ---
         let seatingHtml = `
         <div class="a4-page italic font-black shadow-2xl">
