@@ -49,14 +49,24 @@ exports.addStudent = async (req, res) => {
 exports.bulkUploadStudents = async (req, res) => {
     try {
         const lines = req.body.csv_data.trim().split('\n');
-        const values = lines
-            .map(l => l.split(',').map(s => s.trim()))
-            .filter(row => row.length === 4 && row.every(v => v)); // skip malformed rows
+        const skipped = [];
+        const values = [];
+        lines.forEach((line, idx) => {
+            const row = line.split(',').map(s => s.trim());
+            if (row.length === 4 && row.every(v => v)) {
+                values.push(row);
+            } else {
+                skipped.push(`Row ${idx + 1}: "${line.trim()}"`);
+            }
+        });
         if (values.length > 0) await Student.addBulk(values);
-        res.redirect('/manage-students');
+        if (skipped.length > 0) {
+            return res.redirect(`/manage-students?bulkMsg=Imported+${values.length}+students.+Skipped+${skipped.length}+malformed+rows.`);
+        }
+        res.redirect(`/manage-students?bulkMsg=Successfully+imported+${values.length}+students.`);
     } catch (err) {
         console.error('Bulk Upload Error:', err);
-        res.status(500).send('Bulk upload failed: ' + err.message);
+        res.redirect(`/manage-students?bulkMsg=Error:+${encodeURIComponent(err.message)}`);
     }
 };
 
@@ -126,5 +136,15 @@ exports.findStudentRoom = async (req, res) => {
     } catch (error) {
         console.error('Finder Error:', error);
         res.status(500).json({ success: false, message: 'Database error.' });
+    }
+};
+
+exports.deleteStudent = async (req, res) => {
+    try {
+        await db.query('DELETE FROM students WHERE id = ?', [req.params.id]);
+        res.redirect('/manage-students');
+    } catch (err) {
+        console.error('Delete Student Error:', err);
+        res.status(500).send('Error deleting student.');
     }
 };

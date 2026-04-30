@@ -12,6 +12,7 @@ const branchColors = {
 };
 const defaultColor = { bg: '#f8fafc', border: '#e2e8f0', text: '#475569' };
 
+// ── Build seating page HTML
 function buildSeatingPage(room_number, exam_date, exam_session, students) {
     const cards = students.map(s => {
         const c = branchColors[s.branch] || defaultColor;
@@ -34,6 +35,7 @@ function buildSeatingPage(room_number, exam_date, exam_session, students) {
     </div>`;
 }
 
+// ── Build attendance page HTML
 function buildAttendancePage(room_number, exam_date, exam_session, students) {
     const rows = students.map((s, idx) => {
         const c = branchColors[s.branch] || defaultColor;
@@ -66,6 +68,7 @@ function buildAttendancePage(room_number, exam_date, exam_session, students) {
     </div>`;
 }
 
+// ── Wrap pages in printable HTML shell
 function buildPrintShell(pagesHtml, backUrl = '/') {
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GRIET EMS</title>
     <style>
@@ -83,6 +86,7 @@ function buildPrintShell(pagesHtml, backUrl = '/') {
     </div>
     ${pagesHtml}</body></html>`;
 }
+
 
 // ═══════════════════════════════════════════
 // GENERATE PLAN
@@ -102,25 +106,22 @@ exports.generatePlan = async (req, res) => {
         let studentsToPlace = [];
 
         if (alternate_mode === 'true' && brIds.length > 1) {
-            // ── ALTERNATE: CSE[0]→AIML[0]→CSE[1]→AIML[1]→...
-            // Build one queue per branch in the order they were selected
+            // ALTERNATE: CSE[0]→AIML[0]→CSE[1]→AIML[1]→...
             const groups = {};
             brIds.forEach(br => { groups[br] = allStudents.filter(s => s.branch === br); });
             const maxLen = Math.max(...Object.values(groups).map(g => g.length));
             for (let i = 0; i < maxLen; i++) {
                 brIds.forEach(br => { if (groups[br] && groups[br][i]) studentsToPlace.push(groups[br][i]); });
             }
-
         } else if (jumble_mode === 'true') {
-            // ── JUMBLED: true random shuffle (Fisher-Yates)
+            // JUMBLED: Fisher-Yates random shuffle
             studentsToPlace = [...allStudents];
             for (let i = studentsToPlace.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [studentsToPlace[i], studentsToPlace[j]] = [studentsToPlace[j], studentsToPlace[i]];
             }
-
         } else {
-            // ── NORMAL: branch by branch in roll_no order
+            // NORMAL: branch by branch in roll_no order
             studentsToPlace = allStudents;
         }
 
@@ -139,6 +140,8 @@ exports.generatePlan = async (req, res) => {
         }
 
         const bookings = [];
+        // roomStudents[i] = { roomId, students[] } — used to bulk insert allocation_students
+        const roomStudentMap = [];
         let sIdx = 0;
         let allPages = '';
 
@@ -147,6 +150,7 @@ exports.generatePlan = async (req, res) => {
             const rStudents = studentsToPlace.slice(sIdx, sIdx + room.capacity);
             if (rStudents.length > 0) {
                 bookings.push([room.id, exam_date, exam_session, brIds.join(', '), selected_year, rStudents[0].roll_no]);
+                roomStudentMap.push({ roomId: room.id, students: rStudents });
                 allPages += buildSeatingPage(room.room_number, exam_date, exam_session, rStudents);
                 allPages += buildAttendancePage(room.room_number, exam_date, exam_session, rStudents);
             }
@@ -154,11 +158,29 @@ exports.generatePlan = async (req, res) => {
         }
 
         if (bookings.length > 0) {
-            await db.query(
+            // Insert room_allocations and get inserted IDs
+            const [insertResult] = await db.query(
                 'INSERT INTO room_allocations (room_id, exam_date, exam_session, branch, year, start_roll_no) VALUES ?',
                 [bookings]
             );
+
+            // Store exact student order per allocation in allocation_students
+            const firstId = insertResult.insertId;
+            const studentRows = [];
+            roomStudentMap.forEach((rm, idx) => {
+                const allocId = firstId + idx;
+                rm.students.forEach((s, order) => {
+                    studentRows.push([allocId, s.roll_no, order]);
+                });
+            });
+            if (studentRows.length > 0) {
+                await db.query(
+                    'INSERT INTO allocation_students (allocation_id, roll_no, seat_order) VALUES ?',
+                    [studentRows]
+                );
+            }
         }
+
         res.send(buildPrintShell(allPages, '/'));
     } catch (err) {
         console.error('Generate Plan Error:', err);
@@ -166,27 +188,56 @@ exports.generatePlan = async (req, res) => {
     }
 };
 
+
 // ═══════════════════════════════════════════
-// REPRINT
+// REPRINT — reads from allocation_students
 // ═══════════════════════════════════════════
 exports.reprintPaper = async (req, res) => {
     try {
         const { room_id, date, session } = req.body;
         const formattedDate = new Date(date).toISOString().split('T')[0];
+
+        // Get allocation record
         const [alloc] = await db.query(
-            `SELECT ra.*, r.room_number, r.capacity FROM room_allocations ra
-             JOIN rooms r ON ra.room_id = r.id WHERE ra.room_id = ? AND ra.exam_date = ? AND ra.exam_session = ?`,
+            `SELECT ra.*, r.room_number FROM room_allocations ra
+             JOIN rooms r ON ra.room_id = r.id
+             WHERE ra.room_id = ? AND ra.exam_date = ? AND ra.exam_session = ?`,
             [room_id, formattedDate, session]
         );
         if (!alloc || alloc.length === 0) return res.status(404).send('Allocation not found.');
-        const { start_roll_no, capacity, room_number, branch, year } = alloc[0];
-        const branches = branch.split(',').map(b => b.trim());
-        const [allStudents] = await db.query(
-            'SELECT roll_no, name, year, branch FROM students WHERE branch IN (?) AND year = ? ORDER BY branch, roll_no ASC',
-            [branches, year]
+
+        const { id: allocId, room_number, branch, year, capacity } = alloc[0];
+
+        // Try to get exact ordered students from allocation_students table
+        const [orderedRolls] = await db.query(
+            `SELECT as2.roll_no, s.name, s.branch, s.year
+             FROM allocation_students as2
+             JOIN students s ON UPPER(s.roll_no) = UPPER(as2.roll_no)
+             WHERE as2.allocation_id = ?
+             ORDER BY as2.seat_order ASC`,
+            [allocId]
         );
-        const startIdx = allStudents.findIndex(s => s.roll_no.toUpperCase() === start_roll_no.toUpperCase());
-        const students = startIdx >= 0 ? allStudents.slice(startIdx, startIdx + capacity) : allStudents.slice(0, capacity);
+
+        let students = [];
+
+        if (orderedRolls.length > 0) {
+            // ✅ New allocations — exact order preserved
+            students = orderedRolls;
+        } else {
+            // ⬅ Fallback for old allocations (before this fix)
+            const branches = branch.split(',').map(b => b.trim());
+            const [allStudents] = await db.query(
+                'SELECT roll_no, name, year, branch FROM students WHERE branch IN (?) AND year = ? ORDER BY branch, roll_no ASC',
+                [branches, year]
+            );
+            const startIdx = allStudents.findIndex(s =>
+                s.roll_no.toUpperCase() === alloc[0].start_roll_no.toUpperCase()
+            );
+            students = startIdx >= 0
+                ? allStudents.slice(startIdx, startIdx + capacity)
+                : allStudents.slice(0, capacity);
+        }
+
         const pages = buildSeatingPage(room_number, formattedDate, session, students)
                     + buildAttendancePage(room_number, formattedDate, session, students);
         res.send(buildPrintShell(pages, '/history'));
@@ -195,6 +246,7 @@ exports.reprintPaper = async (req, res) => {
         res.status(500).send('Reprint Error: ' + err.message);
     }
 };
+
 
 // ═══════════════════════════════════════════
 // HISTORY
@@ -208,42 +260,80 @@ exports.getHistory = async (req, res) => {
         q += ' ORDER BY ra.exam_date DESC, r.room_number ASC';
         const [records] = await db.query(q, params);
         res.render('history', { records, searchDate });
-    } catch (err) { res.status(500).send('Error loading history.'); }
+    } catch (err) {
+        console.error('History Error:', err);
+        res.status(500).send('Error loading history.');
+    }
 };
 
 exports.clearHistory = async (req, res) => {
-    try { await db.query('DELETE FROM room_allocations'); res.redirect('/history'); }
-    catch (err) { res.status(500).send(err.message); }
+    try {
+        // allocation_students auto-deleted via ON DELETE CASCADE
+        await db.query('DELETE FROM room_allocations');
+        res.redirect('/history');
+    } catch (err) { res.status(500).send(err.message); }
 };
 
 exports.deleteAllocation = async (req, res) => {
-    try { await db.query('DELETE FROM room_allocations WHERE id = ?', [req.params.id]); res.redirect('/history'); }
-    catch (err) { res.status(500).send(err.message); }
+    try {
+        // allocation_students auto-deleted via ON DELETE CASCADE
+        await db.query('DELETE FROM room_allocations WHERE id = ?', [req.params.id]);
+        res.redirect('/history');
+    } catch (err) { res.status(500).send(err.message); }
 };
 
+
 // ═══════════════════════════════════════════
-// STUDENT FINDER
+// STUDENT FINDER — reads from allocation_students
 // ═══════════════════════════════════════════
 exports.findStudentRoom = async (req, res) => {
     try {
         const { roll_no, date, session } = req.body;
         const cleanRoll = roll_no.trim().toUpperCase();
-        const [student] = await db.execute('SELECT branch, year FROM students WHERE UPPER(roll_no) = ?', [cleanRoll]);
-        if (student.length === 0) return res.json({ success: false, message: 'Student not found in registry.' });
+
+        // Find which allocation contains this student for this date/session
+        const [result] = await db.execute(
+            `SELECT r.room_number
+             FROM allocation_students ast
+             JOIN room_allocations ra ON ast.allocation_id = ra.id
+             JOIN rooms r ON ra.room_id = r.id
+             WHERE UPPER(ast.roll_no) = ?
+               AND ra.exam_date = ?
+               AND ra.exam_session = ?`,
+            [cleanRoll, date, session]
+        );
+
+        if (result.length > 0) {
+            return res.json({ success: true, room: result[0].room_number });
+        }
+
+        // Fallback: old allocation (before allocation_students table existed)
+        const [student] = await db.execute(
+            'SELECT branch, year FROM students WHERE UPPER(roll_no) = ?', [cleanRoll]
+        );
+        if (student.length === 0)
+            return res.json({ success: false, message: 'Student not found in registry.' });
+
         const { branch, year } = student[0];
         const [halls] = await db.execute(
-            `SELECT r.room_number, r.capacity, ra.start_roll_no, ra.id FROM room_allocations ra
-             JOIN rooms r ON ra.room_id = r.id
-             WHERE ra.exam_date = ? AND ra.exam_session = ? AND ra.branch LIKE ? AND ra.year = ? ORDER BY ra.id ASC`,
+            `SELECT r.room_number, r.capacity, ra.start_roll_no, ra.id
+             FROM room_allocations ra JOIN rooms r ON ra.room_id = r.id
+             WHERE ra.exam_date = ? AND ra.exam_session = ? AND ra.branch LIKE ? AND ra.year = ?
+             ORDER BY ra.id ASC`,
             [date, session, `%${branch}%`, year]
         );
-        if (halls.length === 0) return res.json({ success: false, message: 'No allocation found for this date/session.' });
+        if (halls.length === 0)
+            return res.json({ success: false, message: 'No allocation found for this date/session.' });
+
         const [allStudents] = await db.execute(
-            'SELECT roll_no FROM students WHERE branch = ? AND year = ? ORDER BY branch, roll_no ASC', [branch, year]
+            'SELECT roll_no FROM students WHERE branch = ? AND year = ? ORDER BY branch, roll_no ASC',
+            [branch, year]
         );
         const allRolls = allStudents.map(s => s.roll_no.toUpperCase());
         const studentIndex = allRolls.indexOf(cleanRoll);
-        if (studentIndex === -1) return res.json({ success: false, message: 'Roll number mismatch. Contact admin.' });
+        if (studentIndex === -1)
+            return res.json({ success: false, message: 'Roll number mismatch. Contact admin.' });
+
         let offset = 0, assignedRoom = null;
         for (const hall of halls) {
             const startIdx = allRolls.indexOf(hall.start_roll_no.toUpperCase());
@@ -252,13 +342,17 @@ exports.findStudentRoom = async (req, res) => {
             if (studentIndex >= offset && studentIndex <= hallEnd) { assignedRoom = hall.room_number; break; }
             offset = hallEnd + 1;
         }
-        assignedRoom ? res.json({ success: true, room: assignedRoom })
-                     : res.json({ success: false, message: 'Student not allocated for this session.' });
+
+        assignedRoom
+            ? res.json({ success: true, room: assignedRoom })
+            : res.json({ success: false, message: 'Student not allocated for this session.' });
+
     } catch (err) {
         console.error('Finder Error:', err);
         res.status(500).json({ success: false, message: 'Database error.' });
     }
 };
+
 
 // ═══════════════════════════════════════════
 // SWAP
@@ -283,7 +377,8 @@ exports.getSwapDetails = async (req, res) => {
 
 exports.swapRoomAction = async (req, res) => {
     try {
-        await db.query('UPDATE room_allocations SET room_id = ? WHERE id = ?', [req.body.new_room_id, req.body.allocation_id]);
+        await db.query('UPDATE room_allocations SET room_id = ? WHERE id = ?',
+            [req.body.new_room_id, req.body.allocation_id]);
         res.json({ success: true });
     } catch (err) { res.json({ success: false, message: err.message }); }
 };

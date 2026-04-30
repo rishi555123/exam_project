@@ -21,24 +21,26 @@ router.get('/',          dashboardController.getDashboard);
 router.post('/generate', allocationController.generatePlan);
 
 // Students
-router.get('/manage-students',     studentController.manageStudents);
-router.post('/add-student-single', studentController.addStudent);
-router.post('/bulk-upload',        studentController.bulkUploadStudents);
-router.post('/find-student-room',  studentController.findStudentRoom);
+router.get('/manage-students',        studentController.manageStudents);
+router.post('/add-student-single',    studentController.addStudent);
+router.post('/bulk-upload',           studentController.bulkUploadStudents);
+router.post('/find-student-room',     studentController.findStudentRoom);
+router.get('/delete-student/:id',     studentController.deleteStudent);
 
 // Rooms
-router.get('/manage-rooms',     roomController.manageRooms);
-router.post('/add-room-single', roomController.addRoom);
-router.post('/bulk-rooms',      roomController.bulkUploadRooms);
+router.get('/manage-rooms',           roomController.manageRooms);
+router.post('/add-room-single',       roomController.addRoom);
+router.post('/bulk-rooms',            roomController.bulkUploadRooms);
+router.get('/delete-room/:id',        roomController.deleteRoom);
 
 // History & Allocations
-router.get('/history',               allocationController.getHistory);
-router.post('/reprint-paper',        allocationController.reprintPaper);
-router.get('/delete-allocation/:id', allocationController.deleteAllocation);
-router.get('/clear-history',         allocationController.clearHistory);
+router.get('/history',                allocationController.getHistory);
+router.post('/reprint-paper',         allocationController.reprintPaper);
+router.get('/delete-allocation/:id',  allocationController.deleteAllocation);
+router.get('/clear-history',          allocationController.clearHistory);
 
 // Swap
-router.post('/get-swap-details', allocationController.getSwapDetails);
-router.post('/swap-room',        allocationController.swapRoomAction);
+router.post('/get-swap-details',      allocationController.getSwapDetails);
+router.post('/swap-room',             allocationController.swapRoomAction);
 
 module.exports = router;
