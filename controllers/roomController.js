@@ -33,12 +33,22 @@ exports.bulkUploadRooms = async (req, res) => {
         if (data) {
             const values = data.split('\n')
                 .map(l => l.split(',').map(s => s.trim()))
-                .filter(row => row.length === 2 && row.every(v => v)); // skip malformed rows
+                .filter(row => row.length === 2 && row.every(v => v));
             if (values.length > 0) await Room.addBulk(values);
         }
         res.redirect('/manage-rooms');
     } catch (err) {
         console.error('Bulk Rooms Error:', err);
         res.status(500).send('Bulk upload failed: ' + err.message);
+    }
+};
+
+exports.deleteRoom = async (req, res) => {
+    try {
+        await db.query('DELETE FROM rooms WHERE id = ?', [req.params.id]);
+        res.redirect('/manage-rooms');
+    } catch (err) {
+        console.error('Delete Room Error:', err);
+        res.status(500).send('Error deleting room.');
     }
 };
