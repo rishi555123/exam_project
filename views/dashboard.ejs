@@ -1,166 +1,202 @@
 <%- include('partials/header') %>
 
 <style>
-    /* ── Allocation Mode card ── */
+    .dash-wrap { max-width: 1200px; margin: 0 auto; padding: 32px 24px; font-style: italic; font-weight: 900; }
+
+    /* Year cards */
+    .year-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+    @media (max-width: 700px) { .year-grid { grid-template-columns: repeat(2, 1fr); } }
+    .year-card-input { display: none; }
+    .year-card-label {
+        display: block; padding: 28px 16px; text-align: center; cursor: pointer;
+        border-radius: 20px; border: 2px solid var(--border);
+        background: var(--card); color: var(--text);
+        transition: all 0.2s;
+    }
+    .year-card-label:hover { border-color: var(--accent); }
+    .year-card-input:checked + .year-card-label {
+        border-color: var(--accent);
+        background: var(--accent-glow);
+        color: var(--accent);
+    }
+    .year-num { font-size: 22px; font-weight: 900; text-transform: uppercase; }
+    .year-sub { font-size: 9px; font-weight: 900; color: var(--text3); text-transform: uppercase; letter-spacing: 0.2em; margin-top: 4px; }
+
+    /* Top controls row */
+    .controls-row {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px;
+    }
+    @media (max-width: 600px) { .controls-row { grid-template-columns: 1fr; } }
+
+    /* Mode card */
     .mode-card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 24px;
-        padding: 24px 28px;
-        margin-bottom: 20px;
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: 20px; padding: 22px 24px;
     }
     .mode-card-title {
         font-size: 9px; font-weight: 900; text-transform: uppercase;
-        letter-spacing: 0.22em; color: var(--text2);
-        margin-bottom: 16px; font-style: italic;
+        letter-spacing: 0.2em; color: var(--text2); margin-bottom: 14px;
         display: flex; align-items: center; gap: 8px;
     }
+    .mode-card-title i { color: var(--accent); font-size: 11px; }
+
+    /* Toggle rows */
     .mode-row {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 12px 0; border-bottom: 1px solid var(--border);
+        padding: 10px 0; border-bottom: 1px solid var(--border);
     }
     .mode-row:last-child { border-bottom: none; padding-bottom: 0; }
-    .mode-row-info { display: flex; flex-direction: column; gap: 3px; }
-    .mode-row-name {
-        font-size: 11px; font-weight: 900; text-transform: uppercase;
-        letter-spacing: 0.14em; color: var(--text); font-style: italic;
-    }
-    .mode-row-desc { font-size: 9px; color: var(--text3); font-weight: 700; }
+    .mode-row-left { display: flex; flex-direction: column; gap: 2px; }
+    .mode-name { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text); }
+    .mode-desc { font-size: 9px; font-weight: 700; color: var(--text3); }
 
-    /* Toggle switch matching your existing app style */
-    .tog-wrap { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
-    .tog-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
-    .tog-slider {
-        position: absolute; inset: 0;
-        background: var(--border2); border-radius: 24px;
-        cursor: pointer; transition: background 0.22s;
+    /* Toggle switch */
+    .toggle-wrap { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+    .toggle-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider {
+        position: absolute; inset: 0; background: var(--border2);
+        border-radius: 22px; cursor: pointer; transition: background 0.25s;
     }
-    .tog-slider::before {
+    .toggle-slider::before {
         content: ''; position: absolute;
-        width: 18px; height: 18px; border-radius: 50%;
+        width: 16px; height: 16px; border-radius: 50%;
         background: #fff; top: 3px; left: 3px;
-        transition: transform 0.22s;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        transition: transform 0.25s;
     }
-    .tog-wrap input:checked + .tog-slider { background: var(--accent); }
-    .tog-wrap input:checked + .tog-slider::before { transform: translateX(20px); }
+    .toggle-wrap input:checked + .toggle-slider { background: var(--accent); }
+    .toggle-wrap input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+    /* Session select */
+    .session-card {
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: 20px; padding: 22px 24px;
+    }
+    .session-btns { display: flex; gap: 10px; margin-top: 14px; }
+    .session-radio { display: none; }
+    .session-btn {
+        flex: 1; padding: 12px; border-radius: 12px; text-align: center;
+        cursor: pointer; font-size: 10px; font-weight: 900; text-transform: uppercase;
+        letter-spacing: 0.15em; border: 1px solid var(--border2);
+        background: var(--card2); color: var(--text2);
+        transition: all 0.2s;
+    }
+    .session-radio:checked + .session-btn {
+        background: var(--accent-glow); border-color: var(--accent); color: var(--accent);
+    }
+
+    /* Generate button */
+    .gen-btn {
+        width: 100%; padding: 18px; border-radius: 18px;
+        background: var(--accent); color: #fff; border: none;
+        font-size: 11px; font-weight: 900; font-style: italic;
+        text-transform: uppercase; letter-spacing: 0.2em; cursor: pointer;
+        transition: all 0.2s; box-shadow: 0 6px 28px var(--accent-glow);
+        margin-top: 20px;
+    }
+    .gen-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    /* Date card */
+    .date-card {
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: 20px; padding: 22px 24px;
+        margin-bottom: 20px;
+        display: flex; gap: 20px; align-items: flex-end;
+    }
+    .date-card > div { flex: 1; }
 </style>
 
-<div style="max-width:1200px;margin:0 auto;padding:32px 24px;font-style:italic;font-weight:900;">
+<div class="dash-wrap">
 <form action="/generate" method="POST" id="genForm">
 
-    <!-- ── Date + Session (original layout preserved) ── -->
-    <div class="t-card" style="padding:28px;margin-bottom:20px;display:flex;gap:20px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:180px;">
-            <p class="t-label" style="margin-bottom:10px;">Exam Date</p>
+    <!-- Date + Session row -->
+    <div class="date-card">
+        <div>
+            <p class="mode-card-title"><i class="fas fa-calendar-alt"></i> Exam Date</p>
             <input type="date" name="exam_date" value="<%= selDate %>" class="t-input" required>
         </div>
-        <div style="flex:1;min-width:180px;">
-            <p class="t-label" style="margin-bottom:10px;">Session</p>
-            <div style="display:flex;gap:10px;margin-top:2px;">
-                <label style="flex:1;display:flex;align-items:center;justify-content:center;padding:12px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);cursor:pointer;font-size:10px;text-transform:uppercase;letter-spacing:0.15em;color:var(--text2);transition:all 0.2s;" id="lbl_fn">
-                    <input type="radio" name="exam_session" value="FN" style="display:none;" onchange="highlightSession()" <%= selSession==='FN'?'checked':'' %>>FN
-                </label>
-                <label style="flex:1;display:flex;align-items:center;justify-content:center;padding:12px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);cursor:pointer;font-size:10px;text-transform:uppercase;letter-spacing:0.15em;color:var(--text2);transition:all 0.2s;" id="lbl_an">
-                    <input type="radio" name="exam_session" value="AN" style="display:none;" onchange="highlightSession()" <%= selSession==='AN'?'checked':'' %>>AN
-                </label>
+        <div>
+            <p class="mode-card-title"><i class="fas fa-clock"></i> Session</p>
+            <div class="session-btns">
+                <input type="radio" name="exam_session" value="FN" id="sess_fn" class="session-radio" <%= selSession === 'FN' ? 'checked' : '' %>>
+                <label for="sess_fn" class="session-btn">FN</label>
+                <input type="radio" name="exam_session" value="AN" id="sess_an" class="session-radio" <%= selSession === 'AN' ? 'checked' : '' %>>
+                <label for="sess_an" class="session-btn">AN</label>
             </div>
         </div>
     </div>
 
-    <!-- ── Year cards (original layout preserved) ── -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;">
+    <!-- Year selector -->
+    <div class="year-grid">
         <% [1,2,3,4].forEach(y => { %>
             <div>
-                <input type="radio" name="selected_year" value="<%= y %>" id="yr_<%= y %>" style="display:none;" onchange="highlightYear()">
-                <label for="yr_<%= y %>" class="t-card" style="display:block;padding:28px 16px;text-align:center;cursor:pointer;border-width:2px;transition:all 0.2s;" id="lbl_yr_<%= y %>">
-                    <div style="font-size:20px;font-weight:900;text-transform:uppercase;color:var(--text);">
-                        <%= y %><sup style="font-size:11px;"><%= y===1?'st':y===2?'nd':y===3?'rd':'th' %></sup>
-                    </div>
-                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.2em;margin-top:4px;">
-                        <%= stats[y] ? stats[y].total : 0 %> students
-                    </div>
+                <input type="radio" name="selected_year" value="<%= y %>" id="yr_<%= y %>" class="year-card-input">
+                <label for="yr_<%= y %>" class="year-card-label">
+                    <div class="year-num"><%= y %><sup style="font-size:11px"><%= y===1?'st':y===2?'nd':y===3?'rd':'th' %></sup> Year</div>
+                    <div class="year-sub"><%= stats[y] ? stats[y].total : 0 %> students</div>
                 </label>
             </div>
         <% }) %>
     </div>
 
-    <!-- ── Allocation Mode + Branch/Room selectors ── -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;">
+    <!-- Allocation Modes + Room selection -->
+    <div class="controls-row">
 
-        <!-- Allocation Mode -->
+        <!-- Allocation Modes -->
         <div class="mode-card">
             <div class="mode-card-title">
-                <i class="fas fa-sliders-h" style="color:var(--accent);"></i>
-                Allocation Mode
+                <i class="fas fa-sliders-h"></i> Allocation Mode
             </div>
 
+            <!-- Jumbled Mode -->
             <div class="mode-row">
-                <div class="mode-row-info">
-                    <span class="mode-row-name">Jumbled Mode</span>
-                    <span class="mode-row-desc">Random roll-no shuffle</span>
+                <div class="mode-row-left">
+                    <span class="mode-name">Jumbled Mode</span>
+                    <span class="mode-desc">Randomly shuffle roll nos across rooms</span>
                 </div>
-                <label class="tog-wrap">
-                    <input type="checkbox" name="jumbled_mode" id="tog_jumbled" onchange="onModeToggle('jumbled')">
-                    <span class="tog-slider"></span>
+                <label class="toggle-wrap">
+                    <input type="checkbox" name="jumbled_mode" id="jumbledToggle" value="1" onchange="handleModeToggle('jumbled')">
+                    <span class="toggle-slider"></span>
                 </label>
             </div>
 
+            <!-- Alternate Seating -->
             <div class="mode-row">
-                <div class="mode-row-info">
-                    <span class="mode-row-name">Alternate Seating</span>
-                    <span class="mode-row-desc">Dept-A / Dept-B / Dept-A…</span>
+                <div class="mode-row-left">
+                    <span class="mode-name">Alternate Seating</span>
+                    <span class="mode-desc">Interleave Dept-A / Dept-B per seat</span>
                 </div>
-                <label class="tog-wrap">
-                    <input type="checkbox" name="alternate_mode" id="tog_alternate" onchange="onModeToggle('alternate')">
-                    <span class="tog-slider"></span>
+                <label class="toggle-wrap">
+                    <input type="checkbox" name="alternate_mode" id="alternateToggle" value="1" onchange="handleModeToggle('alternate')">
+                    <span class="toggle-slider"></span>
                 </label>
-            </div>
-        </div>
-
-        <!-- Branch selector -->
-        <div class="mode-card">
-            <div class="mode-card-title">
-                <i class="fas fa-code-branch" style="color:var(--accent);"></i>
-                Branches
-                <span style="margin-left:auto;font-size:9px;color:var(--text3);" id="brCount">0 selected</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;">
-                <% ['CSE','AIML','CSDS','ECE','MECH','CIVIL'].forEach(br => { %>
-                    <label class="br-lbl" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--card2);transition:all 0.15s;">
-                        <input type="checkbox" name="selected_branches" value="<%= br %>" style="accent-color:var(--accent);" onchange="updateBrCount()">
-                        <span style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--text);"><%= br %></span>
-                    </label>
-                <% }) %>
             </div>
         </div>
 
         <!-- Room selector -->
         <div class="mode-card">
             <div class="mode-card-title">
-                <i class="fas fa-door-open" style="color:var(--accent);"></i>
-                Halls
-                <span style="margin-left:auto;font-size:9px;color:var(--text3);" id="rmCount">0 selected</span>
+                <i class="fas fa-door-open"></i> Select Halls
+                <span style="margin-left:auto;font-size:9px;color:var(--text3)" id="roomCount">0 selected</span>
             </div>
-            <div style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;">
-                <% if(rooms && rooms.length > 0) { %>
-                    <% rooms.forEach(r => { %>
-                        <label class="rm-lbl" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--card2);transition:all 0.15s;">
-                            <input type="checkbox" name="selected_rooms" value="<%= r.id %>" style="accent-color:var(--accent);" onchange="updateRmCount()">
-                            <span style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--text);">Hall <%= r.room_number %></span>
-                            <span style="margin-left:auto;font-size:9px;color:var(--green);font-weight:900;"><%= r.capacity %></span>
-                        </label>
-                    <% }) %>
-                <% } else { %>
-                    <p style="font-size:10px;color:var(--text3);text-align:center;padding:20px 0;">No halls registered.</p>
+            <div style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;" id="roomCheckboxes">
+                <% rooms.forEach(r => { %>
+                    <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--card2);transition:all 0.15s;"
+                           class="room-check-label">
+                        <input type="checkbox" name="selected_rooms[]" value="<%= r.id %>"
+                               style="accent-color:var(--accent);" onchange="updateRoomCount()">
+                        <span style="font-size:10px;font-weight:900;color:var(--text);text-transform:uppercase;">Hall <%= r.room_number %></span>
+                        <span style="margin-left:auto;font-size:9px;color:var(--green);font-weight:900;"><%= r.capacity %> seats</span>
+                    </label>
+                <% }) %>
+                <% if (!rooms || rooms.length === 0) { %>
+                    <p style="color:var(--text3);font-size:10px;text-align:center;padding:20px 0;">No halls registered yet.</p>
                 <% } %>
             </div>
         </div>
-
     </div>
 
-    <!-- ── Generate button ── -->
-    <button type="submit" class="btn-primary" style="width:100%;padding:18px;font-size:11px;border-radius:18px;" id="genBtn">
+    <!-- Generate button -->
+    <button type="submit" class="gen-btn" id="genBtn">
         <i class="fas fa-bolt" style="margin-right:8px;"></i> Generate Allocation
     </button>
 
@@ -168,83 +204,31 @@
 </div>
 
 <script>
-// ── Mode toggles are mutually exclusive
-function onModeToggle(clicked) {
-    if (clicked === 'jumbled'   && document.getElementById('tog_jumbled').checked)
-        document.getElementById('tog_alternate').checked = false;
-    if (clicked === 'alternate' && document.getElementById('tog_alternate').checked)
-        document.getElementById('tog_jumbled').checked = false;
+function handleModeToggle(clicked) {
+    if (clicked === 'jumbled' && document.getElementById('jumbledToggle').checked) {
+        document.getElementById('alternateToggle').checked = false;
+    }
+    if (clicked === 'alternate' && document.getElementById('alternateToggle').checked) {
+        document.getElementById('jumbledToggle').checked = false;
+    }
 }
 
-// ── Session highlight
-function highlightSession() {
-    const fn = document.querySelector('input[name="exam_session"][value="FN"]').checked;
-    document.getElementById('lbl_fn').style.borderColor = fn  ? 'var(--accent)' : 'var(--border2)';
-    document.getElementById('lbl_fn').style.color       = fn  ? 'var(--accent)' : 'var(--text2)';
-    document.getElementById('lbl_an').style.borderColor = !fn ? 'var(--accent)' : 'var(--border2)';
-    document.getElementById('lbl_an').style.color       = !fn ? 'var(--accent)' : 'var(--text2)';
-}
-
-// ── Year highlight
-function highlightYear() {
-    [1,2,3,4].forEach(y => {
-        const checked = document.getElementById('yr_' + y).checked;
-        const lbl = document.getElementById('lbl_yr_' + y);
-        lbl.style.borderColor = checked ? 'var(--accent)' : 'var(--border)';
-        lbl.style.background  = checked ? 'var(--accent-glow)' : 'var(--card)';
-    });
-}
-
-// ── Branch count + highlight
-function updateBrCount() {
-    const checked = document.querySelectorAll('input[name="selected_branches"]:checked');
-    document.getElementById('brCount').textContent = checked.length + ' selected';
-    document.querySelectorAll('.br-lbl').forEach(lbl => {
-        const cb = lbl.querySelector('input');
+function updateRoomCount() {
+    const n = document.querySelectorAll('input[name="selected_rooms[]"]:checked').length;
+    document.getElementById('roomCount').textContent = n + ' selected';
+    document.querySelectorAll('.room-check-label').forEach(lbl => {
+        const cb = lbl.querySelector('input[type=checkbox]');
         lbl.style.borderColor = cb.checked ? 'var(--accent)' : 'var(--border)';
         lbl.style.background  = cb.checked ? 'var(--accent-glow)' : 'var(--card2)';
     });
 }
 
-// ── Room count + highlight
-function updateRmCount() {
-    const checked = document.querySelectorAll('input[name="selected_rooms"]:checked');
-    document.getElementById('rmCount').textContent = checked.length + ' selected';
-    document.querySelectorAll('.rm-lbl').forEach(lbl => {
-        const cb = lbl.querySelector('input');
-        lbl.style.borderColor = cb.checked ? 'var(--accent)' : 'var(--border)';
-        lbl.style.background  = cb.checked ? 'var(--accent-glow)' : 'var(--card2)';
-    });
-}
-
-// ── Form validation
 document.getElementById('genForm').addEventListener('submit', function(e) {
-    const year     = document.querySelector('input[name="selected_year"]:checked');
-    const session  = document.querySelector('input[name="exam_session"]:checked');
-    const branches = document.querySelectorAll('input[name="selected_branches"]:checked');
-    const rooms    = document.querySelectorAll('input[name="selected_rooms"]:checked');
-
-    if (!year) {
-        e.preventDefault();
-        Swal.fire({ icon:'warning', title:'Select a year', background:'var(--card)', color:'var(--text)' }); return;
-    }
-    if (!session) {
-        e.preventDefault();
-        Swal.fire({ icon:'warning', title:'Select FN or AN session', background:'var(--card)', color:'var(--text)' }); return;
-    }
-    if (branches.length === 0) {
-        e.preventDefault();
-        Swal.fire({ icon:'warning', title:'Select at least one branch', background:'var(--card)', color:'var(--text)' }); return;
-    }
-    if (rooms.length === 0) {
-        e.preventDefault();
-        Swal.fire({ icon:'warning', title:'Select at least one hall', background:'var(--card)', color:'var(--text)' }); return;
-    }
-
-    document.getElementById('genBtn').innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i> Generating…';
+    const year = document.querySelector('input[name="selected_year"]:checked');
+    const rooms = document.querySelectorAll('input[name="selected_rooms[]"]:checked');
+    if (!year) { e.preventDefault(); Swal.fire({ icon:'warning', title:'Select a year', background:'var(--card)', color:'var(--text)' }); return; }
+    if (rooms.length === 0) { e.preventDefault(); Swal.fire({ icon:'warning', title:'Select at least one hall', background:'var(--card)', color:'var(--text)' }); return; }
+    document.getElementById('genBtn').innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i> Generating...';
     document.getElementById('genBtn').disabled = true;
 });
-
-// Init highlights on load
-highlightSession();
 </script>
