@@ -218,32 +218,38 @@ exports.generatePlan = async (req, res) => {
 exports.reprintPaper = async (req, res) => {
     try {
         const { room_id, date, session } = req.body;
-        const formattedDate = new Date(date).toISOString().split('T')[0];
-
         const [alloc] = await db.query(
             `SELECT ra.*, r.room_number, r.capacity FROM room_allocations ra
              JOIN rooms r ON ra.room_id = r.id
              WHERE ra.room_id = ? AND ra.exam_date = ? AND ra.exam_session = ?`,
-            [room_id, formattedDate, session]
+            [room_id, date, session]
         );
 
-        if (!alloc || alloc.length === 0) return res.status(404).send('Allocation not found.');
-
-        const { start_roll_no, capacity, room_number, branch, year } = alloc[0];
+        const { start_roll_no, capacity, room_number, branch, year, jumble_mode } = alloc[0];
         const branches = branch.split(',').map(b => b.trim());
 
-        // Use start_roll_no to find exact students — same logic as finder
-        // Fetch all students for this branch+year sorted same way as generatePlan
         const [allStudents] = await db.query(
             'SELECT roll_no, name, year, branch FROM students WHERE branch IN (?) AND year = ? ORDER BY branch, roll_no ASC',
             [branches, year]
         );
 
-        const startIdx = allStudents.findIndex(s => s.roll_no.toUpperCase() === start_roll_no.toUpperCase());
-        const students = startIdx >= 0 ? allStudents.slice(startIdx, startIdx + capacity) : allStudents.slice(0, capacity);
+        let processedStudents = [];
+        // RE-APPLY JUMBLE LOGIC HERE
+        if (String(jumble_mode) === 'true' && branches.length > 1) {
+            const groups = branches.map(br => allStudents.filter(s => s.branch === br));
+            const maxLen = Math.max(...groups.map(g => g.length));
+            for (let i = 0; i < maxLen; i++) {
+                groups.forEach(group => { if (group[i]) processedStudents.push(group[i]); });
+            }
+        } else {
+            processedStudents = allStudents;
+        }
 
-        const pages = buildSeatingPage(room_number, formattedDate, session, students)
-                    + buildAttendancePage(room_number, formattedDate, session, students);
+        const startIdx = processedStudents.findIndex(s => s.roll_no.toUpperCase() === start_roll_no.toUpperCase());
+        const students = startIdx >= 0 ? processedStudents.slice(startIdx, startIdx + capacity) : processedStudents.slice(0, capacity);
+
+        const pages = buildSeatingPage(room_number, date, session, students)
+                    + buildAttendancePage(room_number, date, session, students);
 
         res.send(buildPrintShell(pages, '/history'));
     } catch (err) {
