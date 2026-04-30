@@ -1,80 +1,199 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GRIET Smart EMS</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;900&display=swap" rel="stylesheet">
-
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-
     <style>
-        /* Global Styles */
-        body { 
-            font-family: 'Lexend', sans-serif; 
-            background-color: #020617; /* Dark Slate Blue */
-            color: white;
+        /* ── DARK MODE (default) ── */
+        :root {
+            --bg-base:    #020617;
+            --bg-card:    #0f172a;
+            --bg-card2:   rgba(15,23,42,0.5);
+            --bg-input:   #1e293b;
+            --border:     rgba(255,255,255,0.07);
+            --text-main:  #ffffff;
+            --text-muted: #64748b;
+            --text-sub:   #94a3b8;
+            --nav-bg:     rgba(2,6,23,0.85);
         }
-        
-        /* Custom Scrollbar for Premium Feel */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #020617; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+        /* ── LIGHT MODE ── */
+        html.light {
+            --bg-base:    #f1f5f9;
+            --bg-card:    #ffffff;
+            --bg-card2:   rgba(255,255,255,0.8);
+            --bg-input:   #f8fafc;
+            --border:     rgba(0,0,0,0.08);
+            --text-main:  #0f172a;
+            --text-muted: #64748b;
+            --text-sub:   #475569;
+            --nav-bg:     rgba(241,245,249,0.9);
+        }
 
-        @media print { .no-print { display: none !important; } }
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
+            font-family: sans-serif;
+        }
+
+        /* Navbar */
+        .ems-nav {
+            background: var(--nav-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        /* Nav links */
+        .nav-link {
+            color: var(--text-muted);
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            padding: 8px 16px;
+            border-radius: 12px;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-style: italic;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: rgba(99,102,241,0.15);
+            color: #818cf8;
+        }
+
+        /* Theme toggle button */
+        #themeToggle {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        #themeToggle:hover { color: #818cf8; border-color: #818cf8; }
+
+        /* Logout button */
+        .logout-btn {
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-style: italic;
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #f87171;
+            background: rgba(239,68,68,0.08);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .logout-btn:hover {
+            background: rgba(239,68,68,0.2);
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        /* Cards that use CSS vars */
+        .theme-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+        }
+        .theme-card2 {
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+        }
+        .theme-input {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+        .theme-text { color: var(--text-main); }
+        .theme-muted { color: var(--text-muted); }
+        .theme-sub { color: var(--text-sub); }
     </style>
 </head>
-<body class="bg-[#020617]">
+<body>
 
-<nav class="sticky top-0 z-[100] bg-[#020617]/90 backdrop-blur-xl border-b border-white/5 no-print font-black italic">
-    <div class="max-w-[1400px] mx-auto flex justify-between items-center px-8 py-4 uppercase">
-        
-        <a href="/" class="flex items-center gap-4 group">
-            <div class="bg-indigo-600 p-2.5 rounded-2xl shadow-[0_0_20px_rgba(79,70,229,0.4)] group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
-                <i class="fas fa-random text-white text-xs"></i>
-            </div>
-            <div class="flex flex-col leading-none">
-                <h1 class="text-sm tracking-tighter text-white group-hover:text-indigo-400 transition-colors">GRIET SMART EMS</h1>
-                <span class="text-[7px] text-slate-500 tracking-[0.4em] mt-1 not-italic">Institutional Portal</span>
-            </div>
+<!-- ── NAVBAR ── -->
+<nav class="ems-nav px-6 py-3">
+    <div class="max-w-[1400px] mx-auto flex items-center justify-between">
+
+        <!-- Brand -->
+        <a href="/" class="text-white font-black uppercase tracking-widest text-sm italic no-underline" style="color:var(--text-main)">
+            GRIET <span style="color:#6366f1">EMS</span>
         </a>
 
-        <div class="hidden md:flex gap-1 items-center">
-            <% const links = [
-                { name: 'Dashboard', url: '/', icon: 'fa-gauge-high' },
-                { name: 'History', url: '/history', icon: 'fa-clock-rotate-left' },
-                { name: 'Registry', url: '/manage-students', icon: 'fa-users-gear' },
-                { name: 'Halls', url: '/manage-rooms', icon: 'fa-building-shield' }
-            ]; %>
+        <!-- Nav Links -->
+        <div class="hidden md:flex items-center gap-1">
+            <a href="/"               class="nav-link <%= typeof title !== 'undefined' && title === 'dashboard' ? 'active' : '' %>">Dashboard</a>
+            <a href="/manage-students" class="nav-link <%= typeof title !== 'undefined' && title === 'students'  ? 'active' : '' %>">Students</a>
+            <a href="/manage-rooms"    class="nav-link <%= typeof title !== 'undefined' && title === 'rooms'     ? 'active' : '' %>">Rooms</a>
+            <a href="/history"         class="nav-link <%= typeof title !== 'undefined' && title === 'history'   ? 'active' : '' %>">History</a>
+        </div>
 
-            <% links.forEach(link => { %>
-                <a href="<%= link.url %>" class="relative px-5 py-2.5 rounded-xl text-[10px] tracking-[0.1em] text-slate-400 hover:text-white hover:bg-white/5 transition-all group flex items-center gap-2">
-                    <i class="fas <%= link.icon %> opacity-30 group-hover:opacity-100 group-hover:text-indigo-400 transition-all"></i>
-                    <span><%= link.name %></span>
-                </a>
-            <% }) %>
-
-            <div class="w-px h-6 bg-white/10 mx-4"></div>
-
-            <div class="flex items-center gap-3">
-                <div class="text-right">
-                    <p class="text-[8px] text-white leading-none">ADMIN ACCESS</p>
-                    <p class="text-[7px] text-emerald-500 mt-1 flex items-center justify-end gap-1 font-black">
-                        <span class="w-1 h-1 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></span>
-                        SYSTEM LIVE
-                    </p>
-                </div>
-                <div class="w-10 h-10 rounded-2xl bg-slate-900 border border-white/5 flex items-center justify-center text-slate-500 hover:text-indigo-400 transition-all cursor-pointer">
-                    <i class="fas fa-user-shield text-xs"></i>
-                </div>
-            </div>
+        <!-- Right: theme toggle + logout -->
+        <div class="flex items-center gap-3">
+            <button id="themeToggle" title="Toggle theme">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+            <a href="/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt mr-1"></i> Logout
+            </a>
         </div>
     </div>
+
+    <!-- Mobile nav -->
+    <div class="flex md:hidden items-center gap-1 mt-2 overflow-x-auto pb-1">
+        <a href="/"                class="nav-link whitespace-nowrap">Dashboard</a>
+        <a href="/manage-students" class="nav-link whitespace-nowrap">Students</a>
+        <a href="/manage-rooms"    class="nav-link whitespace-nowrap">Rooms</a>
+        <a href="/history"         class="nav-link whitespace-nowrap">History</a>
+    </div>
 </nav>
+
+<script>
+    // ── Theme logic ──
+    const html       = document.getElementById('htmlRoot');
+    const themeBtn   = document.getElementById('themeToggle');
+    const themeIcon  = document.getElementById('themeIcon');
+
+    // Load saved preference
+    const saved = localStorage.getItem('ems-theme') || 'dark';
+    applyTheme(saved);
+
+    themeBtn.addEventListener('click', () => {
+        const next = html.classList.contains('light') ? 'dark' : 'light';
+        applyTheme(next);
+        localStorage.setItem('ems-theme', next);
+    });
+
+    function applyTheme(mode) {
+        if (mode === 'light') {
+            html.classList.add('light');
+            themeIcon.className = 'fas fa-sun';
+        } else {
+            html.classList.remove('light');
+            themeIcon.className = 'fas fa-moon';
+        }
+    }
+
+    // ── Active nav highlight based on path ──
+    const path = window.location.pathname;
+    document.querySelectorAll('.nav-link').forEach(link => {
+        const href = link.getAttribute('href');
+        if (href === '/' ? path === '/' : path.startsWith(href)) {
+            link.classList.add('active');
+        }
+    });
+</script>
