@@ -134,6 +134,9 @@ function buildPrintShell(pagesHtml, backUrl = '/history') {
 // GENERATE PLAN
 // ═══════════════════════════════════════════════════════════
 exports.generatePlan = async (req, res) => {
+    console.log("RAW JUMBLE MODE FROM UI:", req.body.jumble_mode); // Check if this is "on", "true", or true
+    console.log("SELECTED BRANCHES:", brIds);
+    
     try {
         const { exam_date, exam_session, selected_year, selected_branches, selected_rooms, jumble_mode } = req.body;
         const brIds = Array.isArray(selected_branches) ? selected_branches : [selected_branches];
@@ -149,7 +152,8 @@ exports.generatePlan = async (req, res) => {
         // e.g. CSE[0], AIML[0], CSE[1], AIML[1] ... so no two same-branch sit adjacent
         // ── JUMBLE: interleave students from each branch alternately
         let studentsToPlace = [];
-        if (String(jumble_mode) === 'true' && brIds.length > 1) {
+        if ((String(jumble_mode) === 'true' || jumble_mode === 'on') && brIds.length > 1) {
+            console.log("JUMBLE CONDITION MET - PROCEEDING TO INTERLEAVE");
             const groups = brIds.map(br => 
                 allStudents.filter(s => s.branch === br)
             );
@@ -165,6 +169,7 @@ exports.generatePlan = async (req, res) => {
                 });
             }
         } else {
+            console.log("JUMBLE CONDITION FAILED - DEFAULTING TO PLAIN LIST");
             studentsToPlace = allStudents;
         }
 
