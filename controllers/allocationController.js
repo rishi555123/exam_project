@@ -134,31 +134,39 @@ function buildPrintShell(pagesHtml, backUrl = '/history') {
 // GENERATE PLAN
 // ═══════════════════════════════════════════════════════════
 exports.generatePlan = async (req, res) => {
-    console.log("RAW JUMBLE MODE FROM UI:", req.body.jumble_mode); // Check if this is "on", "true", or true
-    console.log("SELECTED BRANCHES:", brIds);
-    
     try {
+        // 1. Destructure first so variables are available immediately
         const { exam_date, exam_session, selected_year, selected_branches, selected_rooms, jumble_mode } = req.body;
+
+        // 2. Define brIds and rmIds BEFORE using them in logs or queries
         const brIds = Array.isArray(selected_branches) ? selected_branches : [selected_branches];
         const rmIds = Array.isArray(selected_rooms) ? selected_rooms : [selected_rooms];
 
-        // Fetch students per branch, sorted by roll_no
+        // 3. Proper Debug Logs (Now brIds is defined)
+        console.log("RAW JUMBLE MODE FROM UI:", jumble_mode); 
+        console.log("SELECTED BRANCHES:", brIds);
+        
+        // 4. Fetch students per branch, sorted by roll_no
         const [allStudents] = await db.query(
             'SELECT roll_no, name, year, branch FROM students WHERE year = ? AND branch IN (?) ORDER BY branch, roll_no ASC',
             [selected_year, brIds]
         );
 
-        // ── JUMBLE: interleave students from each branch alternately
-        // e.g. CSE[0], AIML[0], CSE[1], AIML[1] ... so no two same-branch sit adjacent
-        // ── JUMBLE: interleave students from each branch alternately
+        if (!allStudents || allStudents.length === 0) {
+            return res.status(400).send("No students found for the selected Year/Branches.");
+        }
+
+        // 5. ── JUMBLE LOGIC: Corrected condition check
         let studentsToPlace = [];
-        if ((String(jumble_mode) === 'true' || jumble_mode === 'on') && brIds.length > 1) {
+        // Check for 'true' string, 'on' string, or boolean true
+        const isJumbleActive = String(jumble_mode) === 'true' || jumble_mode === 'on' || jumble_mode === true;
+
+        if (isJumbleActive && brIds.length > 1) {
             console.log("JUMBLE CONDITION MET - PROCEEDING TO INTERLEAVE");
             const groups = brIds.map(br => 
                 allStudents.filter(s => s.branch === br)
             );
 
-            // Find the maximum number of students in any single branch
             const maxLen = Math.max(...groups.map(g => g.length));
 
             for (let i = 0; i < maxLen; i++) {
@@ -173,6 +181,7 @@ exports.generatePlan = async (req, res) => {
             studentsToPlace = allStudents;
         }
 
+        // 6. Fetch Rooms
         const [rooms] = await db.query(
             'SELECT * FROM rooms WHERE id IN (?) ORDER BY room_number ASC', [rmIds]
         );
@@ -191,11 +200,21 @@ exports.generatePlan = async (req, res) => {
         let sIdx = 0;
         let allPages = '';
 
+        // 7. Allocation Loop
         for (const room of rooms) {
             if (sIdx >= studentsToPlace.length) break;
             const rStudents = studentsToPlace.slice(sIdx, sIdx + room.capacity);
             if (rStudents.length > 0) {
-                bookings.push([room.id, exam_date, exam_session, brIds.join(', '), selected_year, rStudents[0].roll_no]);
+                // ADDED isJumbleActive to the insert so the database remembers the order type
+                bookings.push([
+                    room.id, 
+                    exam_date, 
+                    exam_session, 
+                    brIds.join(', '), 
+                    selected_year, 
+                    rStudents[0].roll_no,
+                    isJumbleActive ? 1 : 0 // Assuming you added a 'jumble_mode' column
+                ]);
                 allPages += buildSeatingPage(room.room_number, exam_date, exam_session, rStudents);
                 allPages += buildAttendancePage(room.room_number, exam_date, exam_session, rStudents);
             }
@@ -204,12 +223,13 @@ exports.generatePlan = async (req, res) => {
 
         if (bookings.length > 0) {
             await db.query(
-                'INSERT INTO room_allocations (room_id, exam_date, exam_session, branch, year, start_roll_no) VALUES ?',
+                'INSERT INTO room_allocations (room_id, exam_date, exam_session, branch, year, start_roll_no, jumble_mode) VALUES ?',
                 [bookings]
             );
         }
 
         res.send(buildPrintShell(allPages, '/'));
+
     } catch (err) {
         console.error('Generate Plan Error:', err);
         res.status(500).send('Generation Failed: ' + err.message);
