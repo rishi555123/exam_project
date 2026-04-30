@@ -1,46 +1,63 @@
 <%- include('partials/header') %>
 
-<div class="max-w-[1200px] mx-auto px-6 py-10 italic font-black">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        <div class="space-y-6">
-            <div class="bg-white p-8 rounded-[3rem] shadow-xl border-t-8 border-indigo-600">
-                <h3 class="mb-4 uppercase text-[10px] text-slate-400 tracking-widest">Manual Resource Entry</h3>
-                <form id="singleRoomForm" action="/add-room-single" method="POST" onsubmit="handleSingleRoom(event)" class="flex flex-col gap-3">
-                    <input name="r_num" id="r_num" placeholder="Room Number (e.g. 101)" class="p-4 border rounded-2xl bg-slate-50 outline-none font-black uppercase" required>
-                    <input name="cap" id="cap" type="number" placeholder="Seating Capacity" class="p-4 border rounded-2xl bg-slate-50 outline-none font-black" required>
-                    <button type="submit" class="bg-indigo-600 text-white py-4 rounded-2xl uppercase shadow-lg hover:bg-indigo-700 transition font-black italic">Save Examination Hall</button>
+<div style="max-width:1200px;margin:0 auto;padding:32px 24px;font-style:italic;font-weight:900;">
+    <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:20px;">
+
+        <!-- Forms -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="t-card" style="padding:28px;border-top:4px solid var(--accent);">
+                <p class="t-label" style="margin-bottom:18px;">Add Single Hall</p>
+                <form id="singleRoomForm" action="/add-room-single" method="POST" onsubmit="handleSingleRoom(event)" style="display:flex;flex-direction:column;gap:10px;">
+                    <input name="r_num" id="r_num" placeholder="Room Number (e.g. 101)" class="t-input" required>
+                    <input name="cap" id="cap" type="number" placeholder="Seating Capacity" class="t-input" required>
+                    <button type="submit" class="btn-primary" style="padding:14px;">Save Hall</button>
                 </form>
             </div>
 
-            <div class="bg-white p-8 rounded-[3rem] shadow-xl border-t-8 border-emerald-600">
-                <h3 class="mb-4 uppercase text-[10px] text-slate-400 tracking-widest">Bulk Resource Import (CSV)</h3>
+            <div class="t-card" style="padding:28px;border-top:4px solid var(--green);">
+                <p class="t-label" style="margin-bottom:18px;">Bulk Import (CSV)</p>
                 <form id="bulkRoomForm" action="/bulk-rooms" method="POST" onsubmit="handleBulkRooms(event)">
-                    <textarea name="room_data" id="room_data" rows="5" class="w-full p-4 border rounded-2xl bg-slate-50 mb-4 outline-none font-black" placeholder="Format: RoomNumber,Capacity (e.g. 101,36)"></textarea>
-                    <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl uppercase hover:bg-black transition font-black italic">Process Batch Entry</button>
+                    <textarea name="room_data" id="room_data" rows="6" class="t-input" style="resize:vertical;margin-bottom:10px;"
+                              placeholder="Format: RoomNumber,Capacity&#10;e.g. 101,36&#10;102,40"></textarea>
+                    <button type="submit" class="btn-secondary" style="width:100%;padding:14px;">Process Batch</button>
                 </form>
             </div>
         </div>
 
-        <div class="bg-white rounded-[3rem] shadow-2xl border overflow-hidden h-fit">
-            <table class="w-full text-left text-[10px]">
-                <thead class="bg-slate-950 text-emerald-300 uppercase italic">
+        <!-- Table -->
+        <div class="t-card" style="overflow:hidden;">
+            <table class="t-table">
+                <thead>
                     <tr>
-                        <th class="p-6 tracking-widest">Hall Identifier</th>
-                        <th class="p-6 text-center tracking-widest">Total Capacity</th>
-                        <th class="p-6 text-right pr-10 tracking-widest">Management</th>
+                        <th style="text-align:left;">Hall</th>
+                        <th style="text-align:center;">Capacity</th>
+                        <th style="text-align:right;padding-right:24px;">Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-50">
-                    <% rooms.forEach(r => { %>
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="p-6 font-black uppercase text-slate-900">HALL <%= r.room_number %></td>
-                            <td class="p-6 text-center text-emerald-600 font-bold uppercase tracking-tighter"><%= r.capacity %> Available Seats</td>
-                            <td class="p-6 pr-10 text-right">
-                                <button onclick="confirmRoomDelete('<%= r.id %>', '<%= r.room_number %>')" class="text-red-500 font-black uppercase hover:text-red-700 transition italic">Remove</button>
+                <tbody>
+                    <% if(rooms.length > 0) { %>
+                        <% rooms.forEach(r => { %>
+                            <tr>
+                                <td style="font-weight:900;text-transform:uppercase;color:var(--text);font-size:13px;">
+                                    Hall <%= r.room_number %>
+                                </td>
+                                <td style="text-align:center;">
+                                    <span style="color:var(--green);font-weight:900;"><%= r.capacity %></span>
+                                    <span style="color:var(--text3);font-size:9px;margin-left:4px;">seats</span>
+                                </td>
+                                <td style="text-align:right;padding-right:24px;">
+                                    <button onclick="confirmRoomDelete('<%= r.id %>','<%= r.room_number %>')" class="btn-danger" style="padding:6px 12px;font-size:9px;">Remove</button>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="3" style="padding:60px;text-align:center;color:var(--text3);text-transform:uppercase;letter-spacing:0.3em;">
+                                <i class="fas fa-door-open" style="font-size:32px;display:block;margin-bottom:12px;"></i>
+                                No halls registered.
                             </td>
                         </tr>
-                    <% }) %>
+                    <% } %>
                 </tbody>
             </table>
         </div>
@@ -48,79 +65,26 @@
 </div>
 
 <script>
-// --- FORMAL ALERT LOGIC ---
-
-// 1. Single Room Addition
 function handleSingleRoom(event) {
     event.preventDefault();
     const roomNum = document.getElementById('r_num').value;
     const capacity = document.getElementById('cap').value;
-
-    Swal.fire({
-        title: 'Confirm Entry',
-        text: `Register Hall ${roomNum} with a capacity of ${capacity} seats?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#4f46e5',
-        confirmButtonText: 'Confirm Registration'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Registering Resource',
-                didOpen: () => {
-                    Swal.showLoading();
-                    event.target.submit();
-                }
-            });
-        }
-    });
+    Swal.fire({ title:'Register Hall?', text:`Add Hall ${roomNum} with ${capacity} seats?`, icon:'question', showCancelButton:true,
+        confirmButtonColor:'var(--accent)', background:'var(--card)', color:'var(--text)', confirmButtonText:'Save'
+    }).then(r => { if (r.isConfirmed) { Swal.showLoading(); event.target.submit(); } });
 }
-
-// 2. Bulk Room Addition
 function handleBulkRooms(event) {
     event.preventDefault();
-    const data = document.getElementById('room_data').value.trim();
-
-    if (!data) {
-        Swal.fire({
-            icon: 'info',
-            title: 'Input Required',
-            text: 'Please enter room data in the specified CSV format (Room,Capacity).',
-            confirmButtonColor: '#1e293b'
-        });
-        return;
+    if (!document.getElementById('room_data').value.trim()) {
+        Swal.fire({ icon:'info', title:'Empty', text:'Please enter room data.', background:'var(--card)', color:'var(--text)' }); return;
     }
-
-    Swal.fire({
-        title: 'Process Batch Entry?',
-        text: 'System will import multiple hall records. Ensure the format is correct.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonColor: '#059669',
-        confirmButtonText: 'Execute Import'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.showLoading();
-            event.target.submit();
-        }
-    });
+    Swal.fire({ title:'Import Rooms?', text:'Multiple halls will be added.', icon:'info', showCancelButton:true,
+        confirmButtonColor:'var(--green)', background:'var(--card)', color:'var(--text)', confirmButtonText:'Import'
+    }).then(r => { if (r.isConfirmed) { Swal.showLoading(); event.target.submit(); } });
 }
-
-// 3. Delete Confirmation
 function confirmRoomDelete(id, num) {
-    Swal.fire({
-        title: 'Remove Resource?',
-        text: `Hall ${num} will be permanently removed from the system registry.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#1e293b',
-        confirmButtonText: 'Remove Hall',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = `/delete-room/${id}`;
-        }
-    });
+    Swal.fire({ title:'Remove Hall?', text:`Hall ${num} will be permanently removed.`, icon:'warning', showCancelButton:true,
+        confirmButtonColor:'var(--red)', background:'var(--card)', color:'var(--text)', confirmButtonText:'Remove'
+    }).then(r => { if (r.isConfirmed) window.location.href=`/delete-room/${id}`; });
 }
 </script>

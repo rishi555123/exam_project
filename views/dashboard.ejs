@@ -1,128 +1,190 @@
 <%- include('partials/header') %>
 
-<div class="min-h-screen bg-[#020617] text-white p-4 md:p-10 font-black italic">
-    <div class="max-w-[1200px] mx-auto">
-        
-        <div class="mb-12 text-center animate__animated animate__fadeIn">
-            <h2 class="text-5xl uppercase tracking-tighter text-white leading-none">Seating Engine</h2>
-            <p class="text-[10px] text-slate-500 mt-4 tracking-[0.5em] uppercase opacity-70">Official Automated Examination Control</p>
+<div style="max-width:1300px;margin:0 auto;padding:32px 24px;font-style:italic;font-weight:900;">
+
+    <!-- Page title -->
+    <div style="text-align:center;margin-bottom:40px;">
+        <h1 style="font-size:36px;text-transform:uppercase;letter-spacing:-0.02em;color:var(--text);line-height:1;">Seating Engine</h1>
+        <p style="font-size:9px;color:var(--text3);margin-top:10px;letter-spacing:0.4em;text-transform:uppercase;">Official Automated Examination Control</p>
+    </div>
+
+    <form id="allocationForm" action="/generate" method="POST" onsubmit="return validateForm(event)">
+
+        <!-- Row 1: Date + Session + Jumble -->
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;margin-bottom:16px;">
+
+            <!-- Date -->
+            <div class="t-card" style="padding:24px;">
+                <p class="t-label" style="margin-bottom:10px;">Exam Date</p>
+                <input type="date" name="exam_date" value="<%= selDate %>"
+                       onchange="location.href='/?date='+this.value+'&session=<%= selSession %>'"
+                       class="t-input" style="cursor:pointer;">
+            </div>
+
+            <!-- Session -->
+            <div class="t-card" style="padding:24px;">
+                <p class="t-label" style="margin-bottom:10px;">Session</p>
+                <div style="display:flex;gap:8px;">
+                    <button type="button"
+                        onclick="location.href='/?date=<%= selDate %>&session=FN'"
+                        style="flex:1;padding:12px;border-radius:12px;font-size:10px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s;border:1px solid;
+                        <%= selSession=='FN' ? 'background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 16px var(--accent-glow);' : 'background:var(--card2);color:var(--text2);border-color:var(--border2);' %>">
+                        ☀️ Forenoon
+                    </button>
+                    <button type="button"
+                        onclick="location.href='/?date=<%= selDate %>&session=AN'"
+                        style="flex:1;padding:12px;border-radius:12px;font-size:10px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s;border:1px solid;
+                        <%= selSession=='AN' ? 'background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 16px var(--accent-glow);' : 'background:var(--card2);color:var(--text2);border-color:var(--border2);' %>">
+                        🌙 Afternoon
+                    </button>
+                    <input type="hidden" name="exam_session" value="<%= selSession %>">
+                </div>
+            </div>
+
+            <!-- Jumble -->
+            <div class="t-card" style="padding:24px;min-width:200px;display:flex;flex-direction:column;justify-content:space-between;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <p class="t-label">Jumble Mode</p>
+                    <div style="width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-shield-alt" style="color:#fff;font-size:11px;"></i>
+                    </div>
+                </div>
+                <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px;background:var(--card2);border-radius:12px;border:1px solid var(--border);">
+                    <input type="checkbox" name="jumble_mode" value="true" id="jumbleCheck" style="display:none;">
+                    <div id="jumbleToggle" onclick="toggleJumble()" style="width:44px;height:24px;border-radius:99px;background:var(--border2);position:relative;transition:background 0.25s;cursor:pointer;flex-shrink:0;">
+                        <div id="jumbleThumb" style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.25s;"></div>
+                    </div>
+                    <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.15em;color:var(--text2);">Alternate Seating</span>
+                </label>
+            </div>
         </div>
 
-        <form id="allocationForm" action="/generate" method="POST" onsubmit="return validateForm(event)">
-            
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-                
-                <div class="lg:col-span-2 bg-slate-900/50 backdrop-blur-xl p-8 rounded-[3rem] border border-white/10 shadow-2xl">
-                    <div class="flex items-center gap-3 mb-8">
-                        <span class="w-8 h-8 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-[10px] not-italic shadow-[0_0_15px_rgba(79,70,229,0.5)]">01</span>
-                        <h3 class="text-[10px] uppercase text-slate-400 tracking-widest">Configuration</h3>
+        <!-- Row 2: Year selection -->
+        <div class="t-card" style="padding:28px;margin-bottom:16px;">
+            <p class="t-label" style="margin-bottom:18px;"><span style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:6px;margin-right:8px;">02</span> Target Academic Year</p>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+                <% [1,2,3,4].forEach(y => { %>
+                    <div>
+                        <input type="radio" name="selected_year" value="<%= y %>" id="yr_<%= y %>" style="display:none;" onclick="showBranches(<%= y %>)">
+                        <label for="yr_<%= y %>" style="display:block;padding:28px 16px;border:2px solid var(--border2);border-radius:20px;text-align:center;cursor:pointer;transition:all 0.25s;background:var(--card2);"
+                               onmouseover="this.style.borderColor='var(--accent)'"
+                               onmouseout="if(!document.getElementById('yr_<%= y %>').checked)this.style.borderColor='var(--border2)'">
+                            <div style="font-size:24px;text-transform:uppercase;letter-spacing:-0.03em;color:var(--text);">
+                                <%= y %><%= y==1?'st':y==2?'nd':y==3?'rd':'th' %>
+                            </div>
+                            <div style="font-size:9px;color:var(--text3);margin-top:6px;font-family:monospace;">
+                                <%= stats[y] ? stats[y].total : 0 %> students
+                            </div>
+                        </label>
                     </div>
-                    
-                    <div class="flex flex-col md:flex-row gap-6">
-                        <div class="flex-1">
-                            <input type="date" id="exam_date" name="exam_date" value="<%= selDate %>" 
-                                   onchange="location.href='/?date='+this.value+'&session=<%= selSession %>'" 
-                                   class="w-full p-5 border-2 border-white/5 rounded-2xl bg-white text-slate-900 font-black outline-none focus:border-indigo-500 transition-all shadow-inner uppercase">
-                        </div>
-                        <div class="flex gap-2 bg-slate-950 p-2 rounded-2xl border border-white/5">
-                            <button type="button" class="px-8 py-4 rounded-xl text-[10px] transition-all duration-300 <%= selSession=='FN'?'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)] scale-105':'text-slate-500 hover:text-slate-300' %>" onclick="location.href='/?date=<%= selDate %>&session=FN'">FORENOON</button>
-                            <button type="button" class="px-8 py-4 rounded-xl text-[10px] transition-all duration-300 <%= selSession=='AN'?'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)] scale-105':'text-slate-500 hover:text-slate-300' %>" onclick="location.href='/?date=<%= selDate %>&session=AN'">AFTERNOON</button>
-                            <input type="hidden" name="exam_session" value="<%= selSession %>">
-                        </div>
+                <% }) %>
+            </div>
+        </div>
+
+        <!-- Row 3: Branch selection (hidden) -->
+        <div id="branchSection" style="display:none;margin-bottom:16px;">
+            <div class="t-card" style="padding:28px;">
+                <p class="t-label" style="margin-bottom:18px;text-align:center;color:var(--accent);">
+                    <span style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:6px;margin-right:8px;">03</span> Department Selection
+                </p>
+                <div id="branchList" style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;"></div>
+            </div>
+        </div>
+
+        <!-- Row 4: Rooms -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:28px;margin-bottom:16px;">
+            <p class="t-label" style="margin-bottom:18px;">
+                <span style="background:var(--text);color:var(--bg);padding:3px 10px;border-radius:6px;margin-right:8px;">04</span> Select Examination Halls
+            </p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:10px;margin-bottom:24px;">
+                <% rooms.forEach(r => { %>
+                    <div>
+                        <input type="checkbox" name="selected_rooms" value="<%= r.id %>" id="rm_<%= r.id %>"
+                               style="display:none;" class="roomCheck" <%= bookedIds.includes(r.id) ? 'disabled' : '' %>>
+                        <label for="rm_<%= r.id %>"
+                               style="display:block;padding:16px 6px;border:2px solid var(--border2);border-radius:14px;text-align:center;font-size:11px;text-transform:uppercase;transition:all 0.2s;
+                               <%= bookedIds.includes(r.id) ? 'opacity:0.2;cursor:not-allowed;' : 'cursor:pointer;background:var(--card2);color:var(--text);' %>">
+                            <%= r.room_number %>
+                        </label>
                     </div>
-                </div>
-
-                <div class="bg-indigo-900/20 backdrop-blur-xl p-8 rounded-[3rem] border border-indigo-500/30 shadow-2xl flex flex-col justify-between group hover:border-indigo-500 transition-all duration-500">
-                    <div class="flex justify-between items-start">
-                        <h3 class="text-xl font-black uppercase tracking-tighter leading-tight text-white">Alternate<br>Jumbling</h3>
-                        <div class="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                            <i class="fas fa-shield-alt text-white text-xs"></i>
-                        </div>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer mt-8 bg-slate-950/50 p-4 rounded-2xl border border-white/5 hover:border-indigo-500/50 transition-all">
-                        <input type="checkbox" name="jumble_mode" value="true" class="sr-only peer">
-                        <div class="w-12 h-6 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-5 after:left-[20px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-                        <span class="ml-3 text-[9px] uppercase text-slate-400 font-black tracking-widest group-hover:text-white transition-colors">Alternate Seating Mode</span>
-                    </label>
-                </div>
+                <% }) %>
             </div>
 
-            <div class="mb-10 animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
-                <div class="flex items-center gap-3 mb-8 px-4">
-                    <span class="w-8 h-8 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-[10px] not-italic shadow-[0_0_15px_rgba(79,70,229,0.5)]">02</span>
-                    <h3 class="text-[10px] uppercase text-slate-400 tracking-widest">Target Academic Year</h3>
-                </div>
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <% [1,2,3,4].forEach(y => { %>
-                        <div class="relative group">
-                            <input type="radio" name="selected_year" value="<%= y %>" id="yr_<%= y %>" class="hidden peer" onclick="showBranches(<%= y %>)">
-                            <label for="yr_<%= y %>" class="block p-10 bg-slate-900/50 border-2 border-white/5 rounded-[3rem] cursor-pointer text-center transition-all duration-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-600/20 peer-checked:scale-[1.02] peer-checked:shadow-[0_0_40px_rgba(79,70,229,0.2)] hover:border-white/20">
-                                <h4 class="text-2xl uppercase tracking-tighter text-white"><%= y %><%= y==1?'ST':y==2?'ND':y==3?'RD':'TH' %> YEAR</h4>
-                                <p class="text-[9px] text-slate-500 font-mono mt-2 group-hover:text-indigo-400 transition-colors"><%= stats[y] ? stats[y].total : 0 %> REGISTRY ENTRIES</p>
-                            </label>
-                        </div>
-                    <% }) %>
-                </div>
-            </div>
-
-            <div id="branchSection" class="hidden mb-10 transform transition-all duration-700">
-                <div class="bg-slate-900 p-10 rounded-[4rem] border border-white/5 shadow-inner">
-                    <h3 class="text-[10px] uppercase text-indigo-400 mb-8 tracking-[0.4em] text-center italic">Department Deployment</h3>
-                    <div id="branchList" class="flex flex-wrap justify-center gap-4"></div>
-                </div>
-            </div>
-
-            <div class="bg-white p-12 rounded-[4rem] shadow-[0_30px_100px_rgba(0,0,0,0.5)] text-slate-900 relative overflow-hidden animate__animated animate__fadeInUp" style="animation-delay: 0.4s">
-                <div class="flex items-center gap-3 mb-12">
-                    <span class="w-8 h-8 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-[10px] not-italic">03</span>
-                    <h3 class="text-[10px] uppercase text-slate-500 tracking-widest font-black">Infrastructure Assets</h3>
-                </div>
-                
-                <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 gap-3 mb-14">
-                    <% rooms.forEach(r => { %>
-                        <div class="relative group">
-                            <input type="checkbox" name="selected_rooms" value="<%= r.id %>" id="rm_<%= r.id %>" 
-                                   class="hidden peer" <%= bookedIds.includes(r.id) ? 'disabled' : '' %>>
-                            
-                            <label for="rm_<%= r.id %>" 
-                                   class="block py-6 border-2 border-slate-100 rounded-2xl bg-slate-50 cursor-pointer text-center font-black transition-all duration-300
-                                          text-slate-900 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 peer-checked:scale-110 peer-checked:shadow-2xl
-                                          <%= bookedIds.includes(r.id) ? 'opacity-10 cursor-not-allowed grayscale bg-slate-200' : 'hover:border-indigo-400 hover:bg-white group-hover:-translate-y-2' %>">
-                                <div class="text-[14px] uppercase tracking-tighter"><%= r.room_number %></div>
-                            </label>
-                        </div>
-                    <% }) %>
-                </div>
-
-                <button type="submit" class="w-full bg-slate-950 text-white py-8 rounded-[2.5rem] text-sm font-black shadow-[0_20px_50px_rgba(0,0,0,0.4)] hover:bg-black hover:scale-[1.01] active:scale-95 transition-all duration-500 uppercase tracking-[0.5em] flex items-center justify-center gap-6 group">
-                    <span>Generate Official Allocation Plan</span>
-                    <i class="fas fa-chevron-right text-[10px] opacity-40 group-hover:translate-x-2 transition-transform"></i>
-                </button>
-            </div>
-        </form>
-    </div>
+            <button type="submit" style="width:100%;background:var(--accent);color:#fff;padding:20px;border-radius:18px;border:none;font-size:11px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:0.3em;cursor:pointer;box-shadow:0 8px 32px var(--accent-glow);transition:all 0.2s;"
+                    onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+                Generate Official Allocation Plan &nbsp; →
+            </button>
+        </div>
+    </form>
 </div>
 
 <script>
     const allStats = <%- JSON.stringify(stats) %>;
+    let jumbleOn = false;
+
+    function toggleJumble() {
+        jumbleOn = !jumbleOn;
+        document.getElementById('jumbleCheck').checked = jumbleOn;
+        document.getElementById('jumbleToggle').style.background = jumbleOn ? 'var(--green)' : 'var(--border2)';
+        document.getElementById('jumbleThumb').style.left = jumbleOn ? '23px' : '3px';
+    }
+
+    // Room label highlight on check
+    document.querySelectorAll('.roomCheck').forEach(cb => {
+        cb.addEventListener('change', function() {
+            const lbl = document.querySelector(`label[for="${this.id}"]`);
+            if (this.checked) {
+                lbl.style.background = 'var(--accent)';
+                lbl.style.color = '#fff';
+                lbl.style.borderColor = 'var(--accent)';
+                lbl.style.transform = 'scale(1.08)';
+            } else {
+                lbl.style.background = 'var(--card2)';
+                lbl.style.color = 'var(--text)';
+                lbl.style.borderColor = 'var(--border2)';
+                lbl.style.transform = 'scale(1)';
+            }
+        });
+    });
+
+    // Year label highlight
+    document.querySelectorAll('[id^="yr_"]').forEach(rb => {
+        rb.addEventListener('change', function() {
+            document.querySelectorAll('[id^="yr_"]').forEach(r => {
+                const l = document.querySelector(`label[for="${r.id}"]`);
+                l.style.borderColor = 'var(--border2)';
+                l.style.background = 'var(--card2)';
+            });
+            const lbl = document.querySelector(`label[for="${this.id}"]`);
+            lbl.style.borderColor = 'var(--accent)';
+            lbl.style.background = 'var(--accent-glow)';
+        });
+    });
 
     function showBranches(year) {
         const section = document.getElementById('branchSection');
         const list = document.getElementById('branchList');
-        section.classList.remove('hidden');
+        section.style.display = 'block';
         list.innerHTML = '';
-        const brs = ['CSE', 'AIML', 'CSDS', 'MECH', 'CIVIL', 'ECE'];
-        brs.forEach((b, index) => {
+        const brs = ['CSE','AIML','CSDS','MECH','CIVIL','ECE'];
+        brs.forEach(b => {
             const count = (allStats[year] && allStats[year].branches[b]) || 0;
             list.innerHTML += `
-                <div class="relative animate__animated animate__fadeInUp" style="animation-delay: ${index * 0.1}s">
-                    <input type="checkbox" name="selected_branches" value="${b}" id="br_${b}" class="hidden peer">
-                    <label for="br_${b}" class="block px-10 py-5 border-2 border-white/5 bg-slate-950 text-slate-500 rounded-3xl cursor-pointer font-black text-[11px] uppercase transition-all duration-300 peer-checked:bg-white peer-checked:text-slate-950 peer-checked:border-white peer-checked:shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-                        ${b} <span class="ml-2 opacity-30 font-mono">${count}</span>
+                <div>
+                    <input type="checkbox" name="selected_branches" value="${b}" id="br_${b}" style="display:none;" class="branchCheck">
+                    <label for="br_${b}" style="display:block;padding:12px 22px;border:2px solid var(--border2);border-radius:14px;cursor:pointer;font-size:10px;text-transform:uppercase;color:var(--text2);background:var(--card2);transition:all 0.2s;white-space:nowrap;">
+                        ${b} <span style="opacity:0.4;font-family:monospace;margin-left:6px;">${count}</span>
                     </label>
                 </div>`;
         });
-        section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.querySelectorAll('.branchCheck').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const lbl = document.querySelector(`label[for="${this.id}"]`);
+                if (this.checked) { lbl.style.background='var(--accent)'; lbl.style.color='#fff'; lbl.style.borderColor='var(--accent)'; }
+                else { lbl.style.background='var(--card2)'; lbl.style.color='var(--text2)'; lbl.style.borderColor='var(--border2)'; }
+            });
+        });
+        section.scrollIntoView({ behavior:'smooth', block:'center' });
     }
 
     function validateForm(event) {
@@ -130,29 +192,12 @@
         const year = document.querySelector('input[name="selected_year"]:checked');
         const branches = document.querySelectorAll('input[name="selected_branches"]:checked');
         const rooms = document.querySelectorAll('input[name="selected_rooms"]:checked');
-
         if (!year || branches.length === 0 || rooms.length === 0) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Incomplete Selection',
-                text: 'Please ensure Year, Branch, and Halls are selected properly.',
-                confirmButtonColor: '#4f46e5',
-                background: '#0f172a',
-                color: '#fff'
-            });
+            Swal.fire({ icon:'info', title:'Incomplete Selection', text:'Please select Year, Branch and Halls.', confirmButtonColor:'var(--accent)', background:'var(--card)', color:'var(--text)' });
             return false;
         }
-
-        Swal.fire({
-            title: 'Generating Plan',
-            text: 'Allocating resources and optimizing seating arrangements...',
-            background: '#0f172a',
-            color: '#fff',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-                document.getElementById('allocationForm').submit();
-            }
+        Swal.fire({ title:'Generating Plan', text:'Allocating and optimizing...', background:'var(--card)', color:'var(--text)', allowOutsideClick:false,
+            didOpen:() => { Swal.showLoading(); document.getElementById('allocationForm').submit(); }
         });
         return true;
     }

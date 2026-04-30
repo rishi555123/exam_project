@@ -9,191 +9,214 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        /* ── DARK MODE (default) ── */
+        /* ═══════════════════════════════════════
+           DARK MODE — default
+        ═══════════════════════════════════════ */
         :root {
-            --bg-base:    #020617;
-            --bg-card:    #0f172a;
-            --bg-card2:   rgba(15,23,42,0.5);
-            --bg-input:   #1e293b;
-            --border:     rgba(255,255,255,0.07);
-            --text-main:  #ffffff;
-            --text-muted: #64748b;
-            --text-sub:   #94a3b8;
-            --nav-bg:     rgba(2,6,23,0.85);
+            --bg:           #07080f;
+            --bg2:          #0d1117;
+            --card:         #111827;
+            --card2:        #1a2235;
+            --input-bg:     #0d1117;
+            --border:       #1e2d40;
+            --border2:      #253347;
+            --text:         #f0f4ff;
+            --text2:        #8b9ab5;
+            --text3:        #4a5978;
+            --accent:       #6366f1;
+            --accent-glow:  rgba(99,102,241,0.25);
+            --green:        #10b981;
+            --amber:        #f59e0b;
+            --red:          #ef4444;
+            --nav:          rgba(7,8,15,0.92);
+            --badge-bg:     #1e2d40;
+            --table-head:   #0d1117;
+            --table-row:    #111827;
+            --table-hover:  #1a2235;
+            --divider:      #1e2d40;
+            --tag-bg:       #1e2d40;
         }
-        /* ── LIGHT MODE ── */
+        /* ═══════════════════════════════════════
+           LIGHT MODE
+        ═══════════════════════════════════════ */
         html.light {
-            --bg-base:    #f1f5f9;
-            --bg-card:    #ffffff;
-            --bg-card2:   rgba(255,255,255,0.8);
-            --bg-input:   #f8fafc;
-            --border:     rgba(0,0,0,0.08);
-            --text-main:  #0f172a;
-            --text-muted: #64748b;
-            --text-sub:   #475569;
-            --nav-bg:     rgba(241,245,249,0.9);
+            --bg:           #f0f4ff;
+            --bg2:          #e8edf8;
+            --card:         #ffffff;
+            --card2:        #f5f8ff;
+            --input-bg:     #f0f4ff;
+            --border:       #dce3f0;
+            --border2:      #c8d3e8;
+            --text:         #0f172a;
+            --text2:        #475569;
+            --text3:        #94a3b8;
+            --accent:       #4f46e5;
+            --accent-glow:  rgba(79,70,229,0.12);
+            --green:        #059669;
+            --amber:        #d97706;
+            --red:          #dc2626;
+            --nav:          rgba(240,244,255,0.95);
+            --badge-bg:     #e8edf8;
+            --table-head:   #1e293b;
+            --table-row:    #ffffff;
+            --table-hover:  #eef2ff;
+            --divider:      #dce3f0;
+            --tag-bg:       #e8edf8;
         }
+
+        *, *::before, *::after { box-sizing: border-box; }
 
         body {
-            background-color: var(--bg-base);
-            color: var(--text-main);
-            transition: background-color 0.3s, color 0.3s;
-            font-family: sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            transition: background 0.3s, color 0.3s;
+            min-height: 100vh;
         }
 
-        /* Navbar */
+        /* ── Navbar ── */
         .ems-nav {
-            background: var(--nav-bg);
-            backdrop-filter: blur(20px);
+            background: var(--nav);
             border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            backdrop-filter: blur(24px);
+            position: sticky; top: 0; z-index: 200;
+            padding: 0 24px;
+            height: 60px;
+            display: flex; align-items: center;
         }
-
-        /* Nav links */
+        .nav-inner {
+            max-width: 1400px; margin: 0 auto; width: 100%;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .nav-brand {
+            font-size: 14px; font-weight: 900; font-style: italic;
+            letter-spacing: 0.15em; color: var(--text);
+            text-decoration: none; text-transform: uppercase;
+        }
+        .nav-brand span { color: var(--accent); }
+        .nav-links { display: flex; gap: 2px; }
         .nav-link {
-            color: var(--text-muted);
-            font-size: 9px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            padding: 8px 16px;
-            border-radius: 12px;
-            transition: all 0.2s;
-            text-decoration: none;
-            font-style: italic;
+            color: var(--text2); font-size: 9px; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 0.18em;
+            padding: 7px 14px; border-radius: 10px;
+            transition: all 0.2s; text-decoration: none; font-style: italic;
         }
-        .nav-link:hover, .nav-link.active {
-            background: rgba(99,102,241,0.15);
-            color: #818cf8;
-        }
+        .nav-link:hover { background: var(--accent-glow); color: var(--accent); }
+        .nav-link.active { background: var(--accent-glow); color: var(--accent); }
+        .nav-right { display: flex; align-items: center; gap: 10px; }
 
-        /* Theme toggle button */
-        #themeToggle {
-            width: 36px; height: 36px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-muted);
-            cursor: pointer;
+        /* Theme toggle */
+        .theme-btn {
+            width: 34px; height: 34px; border-radius: 10px;
+            border: 1px solid var(--border2); background: var(--card);
+            color: var(--text2); cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s;
-            font-size: 13px;
+            font-size: 12px; transition: all 0.2s;
         }
-        #themeToggle:hover { color: #818cf8; border-color: #818cf8; }
+        .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
 
-        /* Logout button */
+        /* Logout */
         .logout-btn {
-            font-size: 9px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            font-style: italic;
-            padding: 8px 16px;
-            border-radius: 12px;
-            border: 1px solid rgba(239,68,68,0.3);
-            color: #f87171;
-            background: rgba(239,68,68,0.08);
-            text-decoration: none;
-            transition: all 0.2s;
+            font-size: 9px; font-weight: 900; font-style: italic;
+            text-transform: uppercase; letter-spacing: 0.15em;
+            padding: 7px 14px; border-radius: 10px;
+            border: 1px solid rgba(239,68,68,0.25);
+            color: #f87171; background: rgba(239,68,68,0.07);
+            text-decoration: none; transition: all 0.2s;
         }
-        .logout-btn:hover {
-            background: rgba(239,68,68,0.2);
-            border-color: #ef4444;
-            color: #ef4444;
-        }
+        .logout-btn:hover { background: rgba(239,68,68,0.18); border-color: var(--red); color: #fff; }
 
-        /* Cards that use CSS vars */
-        .theme-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
+        /* ── Reusable themed classes ── */
+        .t-card  { background: var(--card);  border: 1px solid var(--border); border-radius: 24px; }
+        .t-card2 { background: var(--card2); border: 1px solid var(--border); border-radius: 20px; }
+        .t-input {
+            background: var(--input-bg); border: 1px solid var(--border2);
+            color: var(--text); border-radius: 12px;
+            padding: 12px 16px; font-size: 12px; font-weight: 700;
+            width: 100%; outline: none; transition: border-color 0.2s;
+            font-style: italic; font-family: inherit;
         }
-        .theme-card2 {
-            background: var(--bg-card2);
-            border: 1px solid var(--border);
+        .t-input:focus { border-color: var(--accent); }
+        .t-input::placeholder { color: var(--text3); }
+        .t-label { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text2); }
+        .t-text  { color: var(--text); }
+        .t-muted { color: var(--text2); }
+        .t-sub   { color: var(--text3); }
+        .t-divider { border-color: var(--divider); }
+        .t-badge { background: var(--badge-bg); color: var(--text2); border: 1px solid var(--border); border-radius: 8px; padding: 3px 10px; font-size: 9px; font-weight: 900; }
+        .t-tag   { background: var(--tag-bg); color: var(--text2); border-radius: 8px; }
+
+        /* Btn styles */
+        .btn-primary {
+            background: var(--accent); color: #fff; border: none; border-radius: 14px;
+            padding: 12px 20px; font-size: 10px; font-weight: 900; font-style: italic;
+            text-transform: uppercase; letter-spacing: 0.15em; cursor: pointer;
+            transition: all 0.2s; box-shadow: 0 4px 20px var(--accent-glow);
         }
-        .theme-input {
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            color: var(--text-main);
+        .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+        .btn-secondary {
+            background: var(--card2); color: var(--text); border: 1px solid var(--border2);
+            border-radius: 14px; padding: 12px 20px; font-size: 10px;
+            font-weight: 900; font-style: italic; text-transform: uppercase;
+            letter-spacing: 0.15em; cursor: pointer; transition: all 0.2s;
         }
-        .theme-text { color: var(--text-main); }
-        .theme-muted { color: var(--text-muted); }
-        .theme-sub { color: var(--text-sub); }
+        .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-danger {
+            background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.25);
+            border-radius: 12px; padding: 8px 16px; font-size: 9px;
+            font-weight: 900; font-style: italic; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-danger:hover { background: var(--red); color: #fff; }
+
+        /* Table */
+        .t-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .t-table thead tr { background: var(--table-head); }
+        .t-table thead th { padding: 16px 20px; color: #94a3b8; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.18em; font-style: italic; }
+        .t-table tbody tr { background: var(--table-row); border-bottom: 1px solid var(--divider); transition: background 0.15s; }
+        .t-table tbody tr:hover { background: var(--table-hover); }
+        .t-table td { padding: 16px 20px; color: var(--text); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 6px; }
     </style>
 </head>
 <body>
-
-<!-- ── NAVBAR ── -->
-<nav class="ems-nav px-6 py-3">
-    <div class="max-w-[1400px] mx-auto flex items-center justify-between">
-
-        <!-- Brand -->
-        <a href="/" class="text-white font-black uppercase tracking-widest text-sm italic no-underline" style="color:var(--text-main)">
-            GRIET <span style="color:#6366f1">EMS</span>
-        </a>
-
-        <!-- Nav Links -->
-        <div class="hidden md:flex items-center gap-1">
-            <a href="/"               class="nav-link <%= typeof title !== 'undefined' && title === 'dashboard' ? 'active' : '' %>">Dashboard</a>
-            <a href="/manage-students" class="nav-link <%= typeof title !== 'undefined' && title === 'students'  ? 'active' : '' %>">Students</a>
-            <a href="/manage-rooms"    class="nav-link <%= typeof title !== 'undefined' && title === 'rooms'     ? 'active' : '' %>">Rooms</a>
-            <a href="/history"         class="nav-link <%= typeof title !== 'undefined' && title === 'history'   ? 'active' : '' %>">History</a>
+<nav class="ems-nav">
+    <div class="nav-inner">
+        <a href="/" class="nav-brand">GRIET <span>EMS</span></a>
+        <div class="nav-links" id="navLinks">
+            <a href="/"                class="nav-link">Dashboard</a>
+            <a href="/manage-students" class="nav-link">Students</a>
+            <a href="/manage-rooms"    class="nav-link">Rooms</a>
+            <a href="/history"         class="nav-link">History</a>
         </div>
-
-        <!-- Right: theme toggle + logout -->
-        <div class="flex items-center gap-3">
-            <button id="themeToggle" title="Toggle theme">
+        <div class="nav-right">
+            <button class="theme-btn" id="themeToggle" title="Toggle theme">
                 <i class="fas fa-moon" id="themeIcon"></i>
             </button>
-            <a href="/logout" class="logout-btn">
-                <i class="fas fa-sign-out-alt mr-1"></i> Logout
-            </a>
+            <a href="/logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
     </div>
-
-    <!-- Mobile nav -->
-    <div class="flex md:hidden items-center gap-1 mt-2 overflow-x-auto pb-1">
-        <a href="/"                class="nav-link whitespace-nowrap">Dashboard</a>
-        <a href="/manage-students" class="nav-link whitespace-nowrap">Students</a>
-        <a href="/manage-rooms"    class="nav-link whitespace-nowrap">Rooms</a>
-        <a href="/history"         class="nav-link whitespace-nowrap">History</a>
-    </div>
 </nav>
-
 <script>
-    // ── Theme logic ──
-    const html       = document.getElementById('htmlRoot');
-    const themeBtn   = document.getElementById('themeToggle');
-    const themeIcon  = document.getElementById('themeIcon');
-
-    // Load saved preference
+    const html = document.getElementById('htmlRoot');
     const saved = localStorage.getItem('ems-theme') || 'dark';
     applyTheme(saved);
-
-    themeBtn.addEventListener('click', () => {
+    document.getElementById('themeToggle').addEventListener('click', () => {
         const next = html.classList.contains('light') ? 'dark' : 'light';
         applyTheme(next);
         localStorage.setItem('ems-theme', next);
     });
-
     function applyTheme(mode) {
-        if (mode === 'light') {
-            html.classList.add('light');
-            themeIcon.className = 'fas fa-sun';
-        } else {
-            html.classList.remove('light');
-            themeIcon.className = 'fas fa-moon';
-        }
+        html.classList.toggle('light', mode === 'light');
+        document.getElementById('themeIcon').className = mode === 'light' ? 'fas fa-sun' : 'fas fa-moon';
     }
-
-    // ── Active nav highlight based on path ──
-    const path = window.location.pathname;
-    document.querySelectorAll('.nav-link').forEach(link => {
-        const href = link.getAttribute('href');
-        if (href === '/' ? path === '/' : path.startsWith(href)) {
-            link.classList.add('active');
-        }
+    // active nav
+    const p = window.location.pathname;
+    document.querySelectorAll('.nav-link').forEach(l => {
+        const h = l.getAttribute('href');
+        if (h === '/' ? p === '/' : p.startsWith(h)) l.classList.add('active');
     });
 </script>
