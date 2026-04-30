@@ -158,17 +158,16 @@ exports.generatePlan = async (req, res) => {
 
         // 5. ── JUMBLE LOGIC: Corrected condition check
         let studentsToPlace = [];
-        // Check for 'true' string, 'on' string, or boolean true
         const isJumbleActive = String(jumble_mode) === 'true' || jumble_mode === 'on' || jumble_mode === true;
 
         if (isJumbleActive && brIds.length > 1) {
-            console.log("JUMBLE CONDITION MET - PROCEEDING TO INTERLEAVE");
-            const groups = brIds.map(br => 
-                allStudents.filter(s => s.branch === br)
-            );
-
+            // Create separate groups for each branch
+            const groups = brIds.map(br => allStudents.filter(s => s.branch === br));
+            
+            // Find the largest group size to ensure we loop enough times
             const maxLen = Math.max(...groups.map(g => g.length));
 
+            // Interleave the students: Take 1 from Branch A, 1 from Branch B, etc.
             for (let i = 0; i < maxLen; i++) {
                 groups.forEach(group => {
                     if (group[i]) {
@@ -177,7 +176,7 @@ exports.generatePlan = async (req, res) => {
                 });
             }
         } else {
-            console.log("JUMBLE CONDITION FAILED - DEFAULTING TO PLAIN LIST");
+            // Default to plain department-wise list
             studentsToPlace = allStudents;
         }
 
