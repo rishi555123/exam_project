@@ -147,13 +147,22 @@ exports.generatePlan = async (req, res) => {
 
         // ── JUMBLE: interleave students from each branch alternately
         // e.g. CSE[0], AIML[0], CSE[1], AIML[1] ... so no two same-branch sit adjacent
+        // ── JUMBLE: interleave students from each branch alternately
         let studentsToPlace = [];
-        if (jumble_mode === 'true' && brIds.length > 1) {
-            const groups = {};
-            brIds.forEach(br => { groups[br] = allStudents.filter(s => s.branch === br); });
-            const maxLen = Math.max(...Object.values(groups).map(g => g.length));
+        if (String(jumble_mode) === 'true' && brIds.length > 1) {
+            const groups = brIds.map(br => 
+                allStudents.filter(s => s.branch === br)
+            );
+
+            // Find the maximum number of students in any single branch
+            const maxLen = Math.max(...groups.map(g => g.length));
+
             for (let i = 0; i < maxLen; i++) {
-                brIds.forEach(br => { if (groups[br][i]) studentsToPlace.push(groups[br][i]); });
+                groups.forEach(group => {
+                    if (group[i]) {
+                        studentsToPlace.push(group[i]);
+                    }
+                });
             }
         } else {
             studentsToPlace = allStudents;
