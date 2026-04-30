@@ -131,56 +131,56 @@ function buildPrintShell(pagesHtml, backUrl = '/history') {
 
 
 // ═══════════════════════════════════════════════════════════
-// GENERATE PLAN
+// GENERATE PLAN  ← ONLY THIS FUNCTION IS CHANGED
 // ═══════════════════════════════════════════════════════════
 exports.generatePlan = async (req, res) => {
     try {
-        // 1. Destructure first so variables are available immediately
-        const { exam_date, exam_session, selected_year, selected_branches, selected_rooms, jumble_mode } = req.body;
+        const { exam_date, exam_session, selected_year, selected_branches, selected_rooms } = req.body;
 
-        // 2. Define brIds and rmIds BEFORE using them in logs or queries
         const brIds = Array.isArray(selected_branches) ? selected_branches : [selected_branches];
-        const rmIds = Array.isArray(selected_rooms) ? selected_rooms : [selected_rooms];
+        const rmIds = Array.isArray(selected_rooms)    ? selected_rooms    : [selected_rooms];
 
-        // 3. Proper Debug Logs (Now brIds is defined)
-        console.log("RAW JUMBLE MODE FROM UI:", jumble_mode); 
-        console.log("SELECTED BRANCHES:", brIds);
-        
-        // 4. Fetch students per branch, sorted by roll_no
+        // HTML checkboxes send "on" when checked, undefined when unchecked
+        const isJumbled   = req.body.jumbled_mode   === 'on';
+        const isAlternate = req.body.alternate_mode === 'on';
+
+        console.log('MODE → jumbled:', isJumbled, '| alternate:', isAlternate);
+        console.log('BRANCHES:', brIds);
+
+        // 1. Fetch students sorted by branch then roll_no
         const [allStudents] = await db.query(
             'SELECT roll_no, name, year, branch FROM students WHERE year = ? AND branch IN (?) ORDER BY branch, roll_no ASC',
             [selected_year, brIds]
         );
 
         if (!allStudents || allStudents.length === 0) {
-            return res.status(400).send("No students found for the selected Year/Branches.");
+            return res.status(400).send('No students found for the selected Year/Branches.');
         }
 
-        // 5. ── JUMBLE LOGIC: Corrected condition check
         let studentsToPlace = [];
-        const isJumbleActive = String(jumble_mode) === 'true' || jumble_mode === 'on' || jumble_mode === true;
 
-        if (isJumbleActive && brIds.length > 1) {
-            // Create separate groups for each branch
+        if (isAlternate && brIds.length > 1) {
+            // ── ALTERNATE: dept-A seat1, dept-B seat1, dept-A seat2, dept-B seat2 …
             const groups = brIds.map(br => allStudents.filter(s => s.branch === br));
-            
-            // Find the largest group size to ensure we loop enough times
             const maxLen = Math.max(...groups.map(g => g.length));
-
-            // Interleave the students: Take 1 from Branch A, 1 from Branch B, etc.
             for (let i = 0; i < maxLen; i++) {
-                groups.forEach(group => {
-                    if (group[i]) {
-                        studentsToPlace.push(group[i]);
-                    }
-                });
+                groups.forEach(group => { if (group[i]) studentsToPlace.push(group[i]); });
             }
+
+        } else if (isJumbled) {
+            // ── JUMBLED: Fisher-Yates random shuffle across all roll numbers
+            studentsToPlace = [...allStudents];
+            for (let i = studentsToPlace.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [studentsToPlace[i], studentsToPlace[j]] = [studentsToPlace[j], studentsToPlace[i]];
+            }
+
         } else {
-            // Default to plain department-wise list
+            // ── NORMAL: plain dept-wise sequential (original behaviour preserved)
             studentsToPlace = allStudents;
         }
 
-        // 6. Fetch Rooms
+        // 2. Fetch rooms
         const [rooms] = await db.query(
             'SELECT * FROM rooms WHERE id IN (?) ORDER BY room_number ASC', [rmIds]
         );
@@ -199,20 +199,19 @@ exports.generatePlan = async (req, res) => {
         let sIdx = 0;
         let allPages = '';
 
-        // 7. Allocation Loop
+        // 3. Slice students into rooms and build print pages
         for (const room of rooms) {
             if (sIdx >= studentsToPlace.length) break;
             const rStudents = studentsToPlace.slice(sIdx, sIdx + room.capacity);
             if (rStudents.length > 0) {
-                // ADDED isJumbleActive to the insert so the database remembers the order type
                 bookings.push([
-                    room.id, 
-                    exam_date, 
-                    exam_session, 
-                    brIds.join(', '), 
-                    selected_year, 
+                    room.id,
+                    exam_date,
+                    exam_session,
+                    brIds.join(', '),
+                    selected_year,
                     rStudents[0].roll_no,
-                    isJumbleActive ? 1 : 0 // Assuming you added a 'jumble_mode' column
+                    isJumbled || isAlternate ? 1 : 0
                 ]);
                 allPages += buildSeatingPage(room.room_number, exam_date, exam_session, rStudents);
                 allPages += buildAttendancePage(room.room_number, exam_date, exam_session, rStudents);

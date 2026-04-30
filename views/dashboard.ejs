@@ -1,204 +1,250 @@
 <%- include('partials/header') %>
 
-<div style="max-width:1300px;margin:0 auto;padding:32px 24px;font-style:italic;font-weight:900;">
+<style>
+    /* ── Allocation Mode card ── */
+    .mode-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 24px 28px;
+        margin-bottom: 20px;
+    }
+    .mode-card-title {
+        font-size: 9px; font-weight: 900; text-transform: uppercase;
+        letter-spacing: 0.22em; color: var(--text2);
+        margin-bottom: 16px; font-style: italic;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .mode-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .mode-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .mode-row-info { display: flex; flex-direction: column; gap: 3px; }
+    .mode-row-name {
+        font-size: 11px; font-weight: 900; text-transform: uppercase;
+        letter-spacing: 0.14em; color: var(--text); font-style: italic;
+    }
+    .mode-row-desc { font-size: 9px; color: var(--text3); font-weight: 700; }
 
-    <!-- Page title -->
-    <div style="text-align:center;margin-bottom:40px;">
-        <h1 style="font-size:36px;text-transform:uppercase;letter-spacing:-0.02em;color:var(--text);line-height:1;">Seating Engine</h1>
-        <p style="font-size:9px;color:var(--text3);margin-top:10px;letter-spacing:0.4em;text-transform:uppercase;">Official Automated Examination Control</p>
+    /* Toggle switch matching your existing app style */
+    .tog-wrap { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .tog-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .tog-slider {
+        position: absolute; inset: 0;
+        background: var(--border2); border-radius: 24px;
+        cursor: pointer; transition: background 0.22s;
+    }
+    .tog-slider::before {
+        content: ''; position: absolute;
+        width: 18px; height: 18px; border-radius: 50%;
+        background: #fff; top: 3px; left: 3px;
+        transition: transform 0.22s;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .tog-wrap input:checked + .tog-slider { background: var(--accent); }
+    .tog-wrap input:checked + .tog-slider::before { transform: translateX(20px); }
+</style>
+
+<div style="max-width:1200px;margin:0 auto;padding:32px 24px;font-style:italic;font-weight:900;">
+<form action="/generate" method="POST" id="genForm">
+
+    <!-- ── Date + Session (original layout preserved) ── -->
+    <div class="t-card" style="padding:28px;margin-bottom:20px;display:flex;gap:20px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:180px;">
+            <p class="t-label" style="margin-bottom:10px;">Exam Date</p>
+            <input type="date" name="exam_date" value="<%= selDate %>" class="t-input" required>
+        </div>
+        <div style="flex:1;min-width:180px;">
+            <p class="t-label" style="margin-bottom:10px;">Session</p>
+            <div style="display:flex;gap:10px;margin-top:2px;">
+                <label style="flex:1;display:flex;align-items:center;justify-content:center;padding:12px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);cursor:pointer;font-size:10px;text-transform:uppercase;letter-spacing:0.15em;color:var(--text2);transition:all 0.2s;" id="lbl_fn">
+                    <input type="radio" name="exam_session" value="FN" style="display:none;" onchange="highlightSession()" <%= selSession==='FN'?'checked':'' %>>FN
+                </label>
+                <label style="flex:1;display:flex;align-items:center;justify-content:center;padding:12px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);cursor:pointer;font-size:10px;text-transform:uppercase;letter-spacing:0.15em;color:var(--text2);transition:all 0.2s;" id="lbl_an">
+                    <input type="radio" name="exam_session" value="AN" style="display:none;" onchange="highlightSession()" <%= selSession==='AN'?'checked':'' %>>AN
+                </label>
+            </div>
+        </div>
     </div>
 
-    <form id="allocationForm" action="/generate" method="POST" onsubmit="return validateForm(event)">
+    <!-- ── Year cards (original layout preserved) ── -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;">
+        <% [1,2,3,4].forEach(y => { %>
+            <div>
+                <input type="radio" name="selected_year" value="<%= y %>" id="yr_<%= y %>" style="display:none;" onchange="highlightYear()">
+                <label for="yr_<%= y %>" class="t-card" style="display:block;padding:28px 16px;text-align:center;cursor:pointer;border-width:2px;transition:all 0.2s;" id="lbl_yr_<%= y %>">
+                    <div style="font-size:20px;font-weight:900;text-transform:uppercase;color:var(--text);">
+                        <%= y %><sup style="font-size:11px;"><%= y===1?'st':y===2?'nd':y===3?'rd':'th' %></sup>
+                    </div>
+                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.2em;margin-top:4px;">
+                        <%= stats[y] ? stats[y].total : 0 %> students
+                    </div>
+                </label>
+            </div>
+        <% }) %>
+    </div>
 
-        <!-- Row 1: Date + Session + Jumble -->
-        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;margin-bottom:16px;">
+    <!-- ── Allocation Mode + Branch/Room selectors ── -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;">
 
-            <!-- Date -->
-            <div class="t-card" style="padding:24px;">
-                <p class="t-label" style="margin-bottom:10px;">Exam Date</p>
-                <input type="date" name="exam_date" value="<%= selDate %>"
-                       onchange="location.href='/?date='+this.value+'&session=<%= selSession %>'"
-                       class="t-input" style="cursor:pointer;">
+        <!-- Allocation Mode -->
+        <div class="mode-card">
+            <div class="mode-card-title">
+                <i class="fas fa-sliders-h" style="color:var(--accent);"></i>
+                Allocation Mode
             </div>
 
-            <!-- Session -->
-            <div class="t-card" style="padding:24px;">
-                <p class="t-label" style="margin-bottom:10px;">Session</p>
-                <div style="display:flex;gap:8px;">
-                    <button type="button"
-                        onclick="location.href='/?date=<%= selDate %>&session=FN'"
-                        style="flex:1;padding:12px;border-radius:12px;font-size:10px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s;border:1px solid;
-                        <%= selSession=='FN' ? 'background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 16px var(--accent-glow);' : 'background:var(--card2);color:var(--text2);border-color:var(--border2);' %>">
-                        ☀️ Forenoon
-                    </button>
-                    <button type="button"
-                        onclick="location.href='/?date=<%= selDate %>&session=AN'"
-                        style="flex:1;padding:12px;border-radius:12px;font-size:10px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s;border:1px solid;
-                        <%= selSession=='AN' ? 'background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 16px var(--accent-glow);' : 'background:var(--card2);color:var(--text2);border-color:var(--border2);' %>">
-                        🌙 Afternoon
-                    </button>
-                    <input type="hidden" name="exam_session" value="<%= selSession %>">
+            <div class="mode-row">
+                <div class="mode-row-info">
+                    <span class="mode-row-name">Jumbled Mode</span>
+                    <span class="mode-row-desc">Random roll-no shuffle</span>
                 </div>
+                <label class="tog-wrap">
+                    <input type="checkbox" name="jumbled_mode" id="tog_jumbled" onchange="onModeToggle('jumbled')">
+                    <span class="tog-slider"></span>
+                </label>
             </div>
 
-            <!-- Jumble -->
-            <div class="t-card" style="padding:24px;min-width:200px;display:flex;flex-direction:column;justify-content:space-between;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <p class="t-label">Jumble Mode</p>
-                    <div style="width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-shield-alt" style="color:#fff;font-size:11px;"></i>
-                    </div>
+            <div class="mode-row">
+                <div class="mode-row-info">
+                    <span class="mode-row-name">Alternate Seating</span>
+                    <span class="mode-row-desc">Dept-A / Dept-B / Dept-A…</span>
                 </div>
-                <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px;background:var(--card2);border-radius:12px;border:1px solid var(--border);">
-                    <input type="checkbox" name="jumble_mode" value="true" id="jumbleCheck" style="display:none;">
-                    <div id="jumbleToggle" onclick="toggleJumble()" style="width:44px;height:24px;border-radius:99px;background:var(--border2);position:relative;transition:background 0.25s;cursor:pointer;flex-shrink:0;">
-                        <div id="jumbleThumb" style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.25s;"></div>
-                    </div>
-                    <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.15em;color:var(--text2);">Alternate Seating</span>
+                <label class="tog-wrap">
+                    <input type="checkbox" name="alternate_mode" id="tog_alternate" onchange="onModeToggle('alternate')">
+                    <span class="tog-slider"></span>
                 </label>
             </div>
         </div>
 
-        <!-- Row 2: Year selection -->
-        <div class="t-card" style="padding:28px;margin-bottom:16px;">
-            <p class="t-label" style="margin-bottom:18px;"><span style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:6px;margin-right:8px;">02</span> Target Academic Year</p>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-                <% [1,2,3,4].forEach(y => { %>
-                    <div>
-                        <input type="radio" name="selected_year" value="<%= y %>" id="yr_<%= y %>" style="display:none;" onclick="showBranches(<%= y %>)">
-                        <label for="yr_<%= y %>" style="display:block;padding:28px 16px;border:2px solid var(--border2);border-radius:20px;text-align:center;cursor:pointer;transition:all 0.25s;background:var(--card2);"
-                               onmouseover="this.style.borderColor='var(--accent)'"
-                               onmouseout="if(!document.getElementById('yr_<%= y %>').checked)this.style.borderColor='var(--border2)'">
-                            <div style="font-size:24px;text-transform:uppercase;letter-spacing:-0.03em;color:var(--text);">
-                                <%= y %><%= y==1?'st':y==2?'nd':y==3?'rd':'th' %>
-                            </div>
-                            <div style="font-size:9px;color:var(--text3);margin-top:6px;font-family:monospace;">
-                                <%= stats[y] ? stats[y].total : 0 %> students
-                            </div>
-                        </label>
-                    </div>
+        <!-- Branch selector -->
+        <div class="mode-card">
+            <div class="mode-card-title">
+                <i class="fas fa-code-branch" style="color:var(--accent);"></i>
+                Branches
+                <span style="margin-left:auto;font-size:9px;color:var(--text3);" id="brCount">0 selected</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;">
+                <% ['CSE','AIML','CSDS','ECE','MECH','CIVIL'].forEach(br => { %>
+                    <label class="br-lbl" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--card2);transition:all 0.15s;">
+                        <input type="checkbox" name="selected_branches" value="<%= br %>" style="accent-color:var(--accent);" onchange="updateBrCount()">
+                        <span style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--text);"><%= br %></span>
+                    </label>
                 <% }) %>
             </div>
         </div>
 
-        <!-- Row 3: Branch selection (hidden) -->
-        <div id="branchSection" style="display:none;margin-bottom:16px;">
-            <div class="t-card" style="padding:28px;">
-                <p class="t-label" style="margin-bottom:18px;text-align:center;color:var(--accent);">
-                    <span style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:6px;margin-right:8px;">03</span> Department Selection
-                </p>
-                <div id="branchList" style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;"></div>
+        <!-- Room selector -->
+        <div class="mode-card">
+            <div class="mode-card-title">
+                <i class="fas fa-door-open" style="color:var(--accent);"></i>
+                Halls
+                <span style="margin-left:auto;font-size:9px;color:var(--text3);" id="rmCount">0 selected</span>
             </div>
-        </div>
-
-        <!-- Row 4: Rooms -->
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:28px;margin-bottom:16px;">
-            <p class="t-label" style="margin-bottom:18px;">
-                <span style="background:var(--text);color:var(--bg);padding:3px 10px;border-radius:6px;margin-right:8px;">04</span> Select Examination Halls
-            </p>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:10px;margin-bottom:24px;">
-                <% rooms.forEach(r => { %>
-                    <div>
-                        <input type="checkbox" name="selected_rooms" value="<%= r.id %>" id="rm_<%= r.id %>"
-                               style="display:none;" class="roomCheck" <%= bookedIds.includes(r.id) ? 'disabled' : '' %>>
-                        <label for="rm_<%= r.id %>"
-                               style="display:block;padding:16px 6px;border:2px solid var(--border2);border-radius:14px;text-align:center;font-size:11px;text-transform:uppercase;transition:all 0.2s;
-                               <%= bookedIds.includes(r.id) ? 'opacity:0.2;cursor:not-allowed;' : 'cursor:pointer;background:var(--card2);color:var(--text);' %>">
-                            <%= r.room_number %>
+            <div style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;">
+                <% if(rooms && rooms.length > 0) { %>
+                    <% rooms.forEach(r => { %>
+                        <label class="rm-lbl" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--card2);transition:all 0.15s;">
+                            <input type="checkbox" name="selected_rooms" value="<%= r.id %>" style="accent-color:var(--accent);" onchange="updateRmCount()">
+                            <span style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--text);">Hall <%= r.room_number %></span>
+                            <span style="margin-left:auto;font-size:9px;color:var(--green);font-weight:900;"><%= r.capacity %></span>
                         </label>
-                    </div>
-                <% }) %>
+                    <% }) %>
+                <% } else { %>
+                    <p style="font-size:10px;color:var(--text3);text-align:center;padding:20px 0;">No halls registered.</p>
+                <% } %>
             </div>
-
-            <button type="submit" style="width:100%;background:var(--accent);color:#fff;padding:20px;border-radius:18px;border:none;font-size:11px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:0.3em;cursor:pointer;box-shadow:0 8px 32px var(--accent-glow);transition:all 0.2s;"
-                    onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
-                Generate Official Allocation Plan &nbsp; →
-            </button>
         </div>
-    </form>
+
+    </div>
+
+    <!-- ── Generate button ── -->
+    <button type="submit" class="btn-primary" style="width:100%;padding:18px;font-size:11px;border-radius:18px;" id="genBtn">
+        <i class="fas fa-bolt" style="margin-right:8px;"></i> Generate Allocation
+    </button>
+
+</form>
 </div>
 
 <script>
-    const allStats = <%- JSON.stringify(stats) %>;
-    let jumbleOn = false;
+// ── Mode toggles are mutually exclusive
+function onModeToggle(clicked) {
+    if (clicked === 'jumbled'   && document.getElementById('tog_jumbled').checked)
+        document.getElementById('tog_alternate').checked = false;
+    if (clicked === 'alternate' && document.getElementById('tog_alternate').checked)
+        document.getElementById('tog_jumbled').checked = false;
+}
 
-    function toggleJumble() {
-        jumbleOn = !jumbleOn;
-        document.getElementById('jumbleCheck').checked = jumbleOn;
-        document.getElementById('jumbleToggle').style.background = jumbleOn ? 'var(--green)' : 'var(--border2)';
-        document.getElementById('jumbleThumb').style.left = jumbleOn ? '23px' : '3px';
-    }
+// ── Session highlight
+function highlightSession() {
+    const fn = document.querySelector('input[name="exam_session"][value="FN"]').checked;
+    document.getElementById('lbl_fn').style.borderColor = fn  ? 'var(--accent)' : 'var(--border2)';
+    document.getElementById('lbl_fn').style.color       = fn  ? 'var(--accent)' : 'var(--text2)';
+    document.getElementById('lbl_an').style.borderColor = !fn ? 'var(--accent)' : 'var(--border2)';
+    document.getElementById('lbl_an').style.color       = !fn ? 'var(--accent)' : 'var(--text2)';
+}
 
-    // Room label highlight on check
-    document.querySelectorAll('.roomCheck').forEach(cb => {
-        cb.addEventListener('change', function() {
-            const lbl = document.querySelector(`label[for="${this.id}"]`);
-            if (this.checked) {
-                lbl.style.background = 'var(--accent)';
-                lbl.style.color = '#fff';
-                lbl.style.borderColor = 'var(--accent)';
-                lbl.style.transform = 'scale(1.08)';
-            } else {
-                lbl.style.background = 'var(--card2)';
-                lbl.style.color = 'var(--text)';
-                lbl.style.borderColor = 'var(--border2)';
-                lbl.style.transform = 'scale(1)';
-            }
-        });
+// ── Year highlight
+function highlightYear() {
+    [1,2,3,4].forEach(y => {
+        const checked = document.getElementById('yr_' + y).checked;
+        const lbl = document.getElementById('lbl_yr_' + y);
+        lbl.style.borderColor = checked ? 'var(--accent)' : 'var(--border)';
+        lbl.style.background  = checked ? 'var(--accent-glow)' : 'var(--card)';
     });
+}
 
-    // Year label highlight
-    document.querySelectorAll('[id^="yr_"]').forEach(rb => {
-        rb.addEventListener('change', function() {
-            document.querySelectorAll('[id^="yr_"]').forEach(r => {
-                const l = document.querySelector(`label[for="${r.id}"]`);
-                l.style.borderColor = 'var(--border2)';
-                l.style.background = 'var(--card2)';
-            });
-            const lbl = document.querySelector(`label[for="${this.id}"]`);
-            lbl.style.borderColor = 'var(--accent)';
-            lbl.style.background = 'var(--accent-glow)';
-        });
+// ── Branch count + highlight
+function updateBrCount() {
+    const checked = document.querySelectorAll('input[name="selected_branches"]:checked');
+    document.getElementById('brCount').textContent = checked.length + ' selected';
+    document.querySelectorAll('.br-lbl').forEach(lbl => {
+        const cb = lbl.querySelector('input');
+        lbl.style.borderColor = cb.checked ? 'var(--accent)' : 'var(--border)';
+        lbl.style.background  = cb.checked ? 'var(--accent-glow)' : 'var(--card2)';
     });
+}
 
-    function showBranches(year) {
-        const section = document.getElementById('branchSection');
-        const list = document.getElementById('branchList');
-        section.style.display = 'block';
-        list.innerHTML = '';
-        const brs = ['CSE','AIML','CSDS','MECH','CIVIL','ECE'];
-        brs.forEach(b => {
-            const count = (allStats[year] && allStats[year].branches[b]) || 0;
-            list.innerHTML += `
-                <div>
-                    <input type="checkbox" name="selected_branches" value="${b}" id="br_${b}" style="display:none;" class="branchCheck">
-                    <label for="br_${b}" style="display:block;padding:12px 22px;border:2px solid var(--border2);border-radius:14px;cursor:pointer;font-size:10px;text-transform:uppercase;color:var(--text2);background:var(--card2);transition:all 0.2s;white-space:nowrap;">
-                        ${b} <span style="opacity:0.4;font-family:monospace;margin-left:6px;">${count}</span>
-                    </label>
-                </div>`;
-        });
-        document.querySelectorAll('.branchCheck').forEach(cb => {
-            cb.addEventListener('change', function() {
-                const lbl = document.querySelector(`label[for="${this.id}"]`);
-                if (this.checked) { lbl.style.background='var(--accent)'; lbl.style.color='#fff'; lbl.style.borderColor='var(--accent)'; }
-                else { lbl.style.background='var(--card2)'; lbl.style.color='var(--text2)'; lbl.style.borderColor='var(--border2)'; }
-            });
-        });
-        section.scrollIntoView({ behavior:'smooth', block:'center' });
+// ── Room count + highlight
+function updateRmCount() {
+    const checked = document.querySelectorAll('input[name="selected_rooms"]:checked');
+    document.getElementById('rmCount').textContent = checked.length + ' selected';
+    document.querySelectorAll('.rm-lbl').forEach(lbl => {
+        const cb = lbl.querySelector('input');
+        lbl.style.borderColor = cb.checked ? 'var(--accent)' : 'var(--border)';
+        lbl.style.background  = cb.checked ? 'var(--accent-glow)' : 'var(--card2)';
+    });
+}
+
+// ── Form validation
+document.getElementById('genForm').addEventListener('submit', function(e) {
+    const year     = document.querySelector('input[name="selected_year"]:checked');
+    const session  = document.querySelector('input[name="exam_session"]:checked');
+    const branches = document.querySelectorAll('input[name="selected_branches"]:checked');
+    const rooms    = document.querySelectorAll('input[name="selected_rooms"]:checked');
+
+    if (!year) {
+        e.preventDefault();
+        Swal.fire({ icon:'warning', title:'Select a year', background:'var(--card)', color:'var(--text)' }); return;
+    }
+    if (!session) {
+        e.preventDefault();
+        Swal.fire({ icon:'warning', title:'Select FN or AN session', background:'var(--card)', color:'var(--text)' }); return;
+    }
+    if (branches.length === 0) {
+        e.preventDefault();
+        Swal.fire({ icon:'warning', title:'Select at least one branch', background:'var(--card)', color:'var(--text)' }); return;
+    }
+    if (rooms.length === 0) {
+        e.preventDefault();
+        Swal.fire({ icon:'warning', title:'Select at least one hall', background:'var(--card)', color:'var(--text)' }); return;
     }
 
-    function validateForm(event) {
-        event.preventDefault();
-        const year = document.querySelector('input[name="selected_year"]:checked');
-        const branches = document.querySelectorAll('input[name="selected_branches"]:checked');
-        const rooms = document.querySelectorAll('input[name="selected_rooms"]:checked');
-        if (!year || branches.length === 0 || rooms.length === 0) {
-            Swal.fire({ icon:'info', title:'Incomplete Selection', text:'Please select Year, Branch and Halls.', confirmButtonColor:'var(--accent)', background:'var(--card)', color:'var(--text)' });
-            return false;
-        }
-        Swal.fire({ title:'Generating Plan', text:'Allocating and optimizing...', background:'var(--card)', color:'var(--text)', allowOutsideClick:false,
-            didOpen:() => { Swal.showLoading(); document.getElementById('allocationForm').submit(); }
-        });
-        return true;
-    }
+    document.getElementById('genBtn').innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i> Generating…';
+    document.getElementById('genBtn').disabled = true;
+});
+
+// Init highlights on load
+highlightSession();
 </script>
