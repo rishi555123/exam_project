@@ -2,7 +2,6 @@
 
 <div style="max-width:1300px;margin:0 auto;padding:32px 24px;font-style:italic;font-weight:900;">
 
-    <!-- Page title -->
     <div style="text-align:center;margin-bottom:40px;">
         <h1 style="font-size:36px;text-transform:uppercase;letter-spacing:-0.02em;color:var(--text);line-height:1;">Seating Engine</h1>
         <p style="font-size:9px;color:var(--text3);margin-top:10px;letter-spacing:0.4em;text-transform:uppercase;">Official Automated Examination Control</p>
@@ -10,29 +9,23 @@
 
     <form id="allocationForm" action="/generate" method="POST" onsubmit="return validateForm(event)">
 
-        <!-- Row 1: Date + Session + Jumble -->
-        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;margin-bottom:16px;">
-
-            <!-- Date -->
+        <!-- Row 1: Date + Session -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
             <div class="t-card" style="padding:24px;">
                 <p class="t-label" style="margin-bottom:10px;">Exam Date</p>
                 <input type="date" name="exam_date" value="<%= selDate %>"
                        onchange="location.href='/?date='+this.value+'&session=<%= selSession %>'"
                        class="t-input" style="cursor:pointer;">
             </div>
-
-            <!-- Session -->
             <div class="t-card" style="padding:24px;">
                 <p class="t-label" style="margin-bottom:10px;">Session</p>
                 <div style="display:flex;gap:8px;">
-                    <button type="button"
-                        onclick="location.href='/?date=<%= selDate %>&session=FN'"
+                    <button type="button" onclick="location.href='/?date=<%= selDate %>&session=FN'"
                         style="flex:1;padding:12px;border-radius:12px;font-size:10px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s;border:1px solid;
                         <%= selSession=='FN' ? 'background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 16px var(--accent-glow);' : 'background:var(--card2);color:var(--text2);border-color:var(--border2);' %>">
                         ☀️ Forenoon
                     </button>
-                    <button type="button"
-                        onclick="location.href='/?date=<%= selDate %>&session=AN'"
+                    <button type="button" onclick="location.href='/?date=<%= selDate %>&session=AN'"
                         style="flex:1;padding:12px;border-radius:12px;font-size:10px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s;border:1px solid;
                         <%= selSession=='AN' ? 'background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 16px var(--accent-glow);' : 'background:var(--card2);color:var(--text2);border-color:var(--border2);' %>">
                         🌙 Afternoon
@@ -40,35 +33,88 @@
                     <input type="hidden" name="exam_session" value="<%= selSession %>">
                 </div>
             </div>
-
-            <!-- Jumble -->
-            <div class="t-card" style="padding:24px;min-width:200px;display:flex;flex-direction:column;justify-content:space-between;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <p class="t-label">Jumble Mode</p>
-                    <div style="width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-shield-alt" style="color:#fff;font-size:11px;"></i>
-                    </div>
-                </div>
-                <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px;background:var(--card2);border-radius:12px;border:1px solid var(--border);">
-                    <input type="checkbox" name="jumble_mode" value="true" id="jumbleCheck" style="display:none;">
-                    <div id="jumbleToggle" onclick="toggleJumble()" style="width:44px;height:24px;border-radius:99px;background:var(--border2);position:relative;transition:background 0.25s;cursor:pointer;flex-shrink:0;">
-                        <div id="jumbleThumb" style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.25s;"></div>
-                    </div>
-                    <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.15em;color:var(--text2);">Alternate Seating</span>
-                </label>
-            </div>
         </div>
 
-        <!-- Row 2: Year selection -->
+        <!-- Allocation Modes Card -->
+        <div class="t-card" style="padding:24px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+                <div style="width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-sliders-h" style="color:#fff;font-size:11px;"></i>
+                </div>
+                <p class="t-label" style="margin:0;">Allocation Modes</p>
+                <span style="font-size:8px;color:var(--text3);margin-left:4px;">(Select one or none)</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+                <!-- Alternate Mode -->
+                <div id="altModeCard" onclick="selectMode('alternate')"
+                     style="padding:20px;border:2px solid var(--border2);border-radius:18px;cursor:pointer;transition:all 0.25s;background:var(--card2);position:relative;overflow:hidden;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+                        <div>
+                            <div style="font-size:13px;font-weight:900;text-transform:uppercase;color:var(--text);letter-spacing:-0.01em;">Alternate Seating</div>
+                            <div style="font-size:9px;color:var(--text3);margin-top:4px;font-weight:700;">CSE → AIML → CSE → AIML...</div>
+                        </div>
+                        <div style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="fas fa-exchange-alt" style="color:var(--accent);font-size:13px;"></i>
+                        </div>
+                    </div>
+                    <div style="font-size:8px;color:var(--text3);line-height:1.6;margin-bottom:16px;">
+                        Students from selected branches are interleaved alternately so no two students of the same branch sit next to each other.
+                    </div>
+                    <!-- Toggle -->
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div id="altToggle" style="width:44px;height:24px;border-radius:99px;background:var(--border2);position:relative;transition:background 0.25s;flex-shrink:0;">
+                            <div id="altThumb" style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.25s;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>
+                        </div>
+                        <span id="altLabel" style="font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);">Off</span>
+                    </div>
+                    <!-- Active glow bar -->
+                    <div id="altBar" style="position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--accent);opacity:0;transition:opacity 0.25s;border-radius:0 0 16px 16px;"></div>
+                </div>
+
+                <!-- Jumbled Mode -->
+                <div id="jumModeCard" onclick="selectMode('jumbled')"
+                     style="padding:20px;border:2px solid var(--border2);border-radius:18px;cursor:pointer;transition:all 0.25s;background:var(--card2);position:relative;overflow:hidden;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+                        <div>
+                            <div style="font-size:13px;font-weight:900;text-transform:uppercase;color:var(--text);letter-spacing:-0.01em;">Jumbled Seating</div>
+                            <div style="font-size:9px;color:var(--text3);margin-top:4px;font-weight:700;">Random shuffle across all branches</div>
+                        </div>
+                        <div style="width:36px;height:36px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="fas fa-random" style="color:var(--green);font-size:13px;"></i>
+                        </div>
+                    </div>
+                    <div style="font-size:8px;color:var(--text3);line-height:1.6;margin-bottom:16px;">
+                        All selected students are randomly shuffled together before allocation — maximum mixing across branches, no pattern.
+                    </div>
+                    <!-- Toggle -->
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div id="jumToggle" style="width:44px;height:24px;border-radius:99px;background:var(--border2);position:relative;transition:background 0.25s;flex-shrink:0;">
+                            <div id="jumThumb" style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.25s;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>
+                        </div>
+                        <span id="jumLabel" style="font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);">Off</span>
+                    </div>
+                    <!-- Active glow bar -->
+                    <div id="jumBar" style="position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--green);opacity:0;transition:opacity 0.25s;border-radius:0 0 16px 16px;"></div>
+                </div>
+            </div>
+
+            <!-- Hidden inputs sent to server -->
+            <input type="hidden" name="alternate_mode" id="alternate_mode" value="false">
+            <input type="hidden" name="jumble_mode"    id="jumble_mode"    value="false">
+        </div>
+
+        <!-- Year Selection -->
         <div class="t-card" style="padding:28px;margin-bottom:16px;">
-            <p class="t-label" style="margin-bottom:18px;"><span style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:6px;margin-right:8px;">02</span> Target Academic Year</p>
+            <p class="t-label" style="margin-bottom:18px;">
+                <span style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:6px;margin-right:8px;">02</span> Target Academic Year
+            </p>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
                 <% [1,2,3,4].forEach(y => { %>
                     <div>
                         <input type="radio" name="selected_year" value="<%= y %>" id="yr_<%= y %>" style="display:none;" onclick="showBranches(<%= y %>)">
-                        <label for="yr_<%= y %>" style="display:block;padding:28px 16px;border:2px solid var(--border2);border-radius:20px;text-align:center;cursor:pointer;transition:all 0.25s;background:var(--card2);"
-                               onmouseover="this.style.borderColor='var(--accent)'"
-                               onmouseout="if(!document.getElementById('yr_<%= y %>').checked)this.style.borderColor='var(--border2)'">
+                        <label for="yr_<%= y %>" style="display:block;padding:28px 16px;border:2px solid var(--border2);border-radius:20px;text-align:center;cursor:pointer;transition:all 0.25s;background:var(--card2);">
                             <div style="font-size:24px;text-transform:uppercase;letter-spacing:-0.03em;color:var(--text);">
                                 <%= y %><%= y==1?'st':y==2?'nd':y==3?'rd':'th' %>
                             </div>
@@ -81,18 +127,18 @@
             </div>
         </div>
 
-        <!-- Row 3: Branch selection (hidden) -->
+        <!-- Branch Selection -->
         <div id="branchSection" style="display:none;margin-bottom:16px;">
             <div class="t-card" style="padding:28px;">
-                <p class="t-label" style="margin-bottom:18px;text-align:center;color:var(--accent);">
+                <p class="t-label" style="margin-bottom:18px;text-align:center;">
                     <span style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:6px;margin-right:8px;">03</span> Department Selection
                 </p>
                 <div id="branchList" style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;"></div>
             </div>
         </div>
 
-        <!-- Row 4: Rooms -->
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:28px;margin-bottom:16px;">
+        <!-- Rooms -->
+        <div class="t-card" style="padding:28px;margin-bottom:16px;">
             <p class="t-label" style="margin-bottom:18px;">
                 <span style="background:var(--text);color:var(--bg);padding:3px 10px;border-radius:6px;margin-right:8px;">04</span> Select Examination Halls
             </p>
@@ -103,13 +149,12 @@
                                style="display:none;" class="roomCheck" <%= bookedIds.includes(r.id) ? 'disabled' : '' %>>
                         <label for="rm_<%= r.id %>"
                                style="display:block;padding:16px 6px;border:2px solid var(--border2);border-radius:14px;text-align:center;font-size:11px;text-transform:uppercase;transition:all 0.2s;
-                               <%= bookedIds.includes(r.id) ? 'opacity:0.2;cursor:not-allowed;' : 'cursor:pointer;background:var(--card2);color:var(--text);' %>">
+                               <%= bookedIds.includes(r.id) ? 'opacity:0.2;cursor:not-allowed;background:var(--card2);color:var(--text3);' : 'cursor:pointer;background:var(--card2);color:var(--text);' %>">
                             <%= r.room_number %>
                         </label>
                     </div>
                 <% }) %>
             </div>
-
             <button type="submit" style="width:100%;background:var(--accent);color:#fff;padding:20px;border-radius:18px;border:none;font-size:11px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:0.3em;cursor:pointer;box-shadow:0 8px 32px var(--accent-glow);transition:all 0.2s;"
                     onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
                 Generate Official Allocation Plan &nbsp; →
@@ -119,86 +164,119 @@
 </div>
 
 <script>
-    const allStats = <%- JSON.stringify(stats) %>;
-    let jumbleOn = false;
+const allStats = <%- JSON.stringify(stats) %>;
+let activeMode = null; // 'alternate' | 'jumbled' | null
 
-    function toggleJumble() {
-        jumbleOn = !jumbleOn;
-        document.getElementById('jumbleCheck').checked = jumbleOn;
-        document.getElementById('jumbleToggle').style.background = jumbleOn ? 'var(--green)' : 'var(--border2)';
-        document.getElementById('jumbleThumb').style.left = jumbleOn ? '23px' : '3px';
+function selectMode(mode) {
+    if (activeMode === mode) {
+        // Clicking same mode again → turn it OFF
+        activeMode = null;
+    } else {
+        activeMode = mode;
     }
+    applyModeUI();
+}
 
-    // Room label highlight on check
-    document.querySelectorAll('.roomCheck').forEach(cb => {
+function applyModeUI() {
+    // Reset both cards
+    const cards = { alternate: 'altModeCard', jumbled: 'jumModeCard' };
+    const toggles = { alternate: 'altToggle', jumbled: 'jumToggle' };
+    const thumbs  = { alternate: 'altThumb',  jumbled: 'jumThumb' };
+    const labels  = { alternate: 'altLabel',  jumbled: 'jumLabel' };
+    const bars    = { alternate: 'altBar',    jumbled: 'jumBar' };
+    const colors  = { alternate: 'var(--accent)', jumbled: 'var(--green)' };
+
+    ['alternate', 'jumbled'].forEach(m => {
+        const on = activeMode === m;
+        document.getElementById(cards[m]).style.borderColor   = on ? colors[m] : 'var(--border2)';
+        document.getElementById(cards[m]).style.background    = on ? (m === 'alternate' ? 'var(--accent-glow)' : 'rgba(16,185,129,0.08)') : 'var(--card2)';
+        document.getElementById(toggles[m]).style.background  = on ? colors[m] : 'var(--border2)';
+        document.getElementById(thumbs[m]).style.left         = on ? '23px' : '3px';
+        document.getElementById(labels[m]).style.color        = on ? colors[m] : 'var(--text3)';
+        document.getElementById(labels[m]).textContent        = on ? 'ON' : 'Off';
+        document.getElementById(bars[m]).style.opacity        = on ? '1' : '0';
+    });
+
+    document.getElementById('alternate_mode').value = activeMode === 'alternate' ? 'true' : 'false';
+    document.getElementById('jumble_mode').value    = activeMode === 'jumbled'   ? 'true' : 'false';
+}
+
+// Room checkbox highlight
+document.querySelectorAll('.roomCheck').forEach(cb => {
+    cb.addEventListener('change', function() {
+        const lbl = document.querySelector(`label[for="${this.id}"]`);
+        if (this.checked) {
+            lbl.style.background = 'var(--accent)'; lbl.style.color = '#fff';
+            lbl.style.borderColor = 'var(--accent)'; lbl.style.transform = 'scale(1.08)';
+        } else {
+            lbl.style.background = 'var(--card2)'; lbl.style.color = 'var(--text)';
+            lbl.style.borderColor = 'var(--border2)'; lbl.style.transform = 'scale(1)';
+        }
+    });
+});
+
+// Year radio highlight
+document.querySelectorAll('[id^="yr_"]').forEach(rb => {
+    rb.addEventListener('change', function() {
+        document.querySelectorAll('[id^="yr_"]').forEach(r => {
+            const l = document.querySelector(`label[for="${r.id}"]`);
+            l.style.borderColor = 'var(--border2)'; l.style.background = 'var(--card2)';
+        });
+        const lbl = document.querySelector(`label[for="${this.id}"]`);
+        lbl.style.borderColor = 'var(--accent)'; lbl.style.background = 'var(--accent-glow)';
+    });
+});
+
+function showBranches(year) {
+    const section = document.getElementById('branchSection');
+    const list = document.getElementById('branchList');
+    section.style.display = 'block';
+    list.innerHTML = '';
+    const brs = ['CSE','AIML','CSDS','MECH','CIVIL','ECE'];
+    brs.forEach(b => {
+        const count = (allStats[year] && allStats[year].branches[b]) || 0;
+        list.innerHTML += `
+            <div>
+                <input type="checkbox" name="selected_branches" value="${b}" id="br_${b}" style="display:none;" class="branchCheck">
+                <label for="br_${b}" style="display:block;padding:12px 22px;border:2px solid var(--border2);border-radius:14px;cursor:pointer;font-size:10px;text-transform:uppercase;color:var(--text2);background:var(--card2);transition:all 0.2s;white-space:nowrap;">
+                    ${b} <span style="opacity:0.4;font-family:monospace;margin-left:6px;">${count}</span>
+                </label>
+            </div>`;
+    });
+    document.querySelectorAll('.branchCheck').forEach(cb => {
         cb.addEventListener('change', function() {
             const lbl = document.querySelector(`label[for="${this.id}"]`);
-            if (this.checked) {
-                lbl.style.background = 'var(--accent)';
-                lbl.style.color = '#fff';
-                lbl.style.borderColor = 'var(--accent)';
-                lbl.style.transform = 'scale(1.08)';
-            } else {
-                lbl.style.background = 'var(--card2)';
-                lbl.style.color = 'var(--text)';
-                lbl.style.borderColor = 'var(--border2)';
-                lbl.style.transform = 'scale(1)';
-            }
+            if (this.checked) { lbl.style.background='var(--accent)'; lbl.style.color='#fff'; lbl.style.borderColor='var(--accent)'; }
+            else { lbl.style.background='var(--card2)'; lbl.style.color='var(--text2)'; lbl.style.borderColor='var(--border2)'; }
         });
     });
+    section.scrollIntoView({ behavior:'smooth', block:'center' });
+}
 
-    // Year label highlight
-    document.querySelectorAll('[id^="yr_"]').forEach(rb => {
-        rb.addEventListener('change', function() {
-            document.querySelectorAll('[id^="yr_"]').forEach(r => {
-                const l = document.querySelector(`label[for="${r.id}"]`);
-                l.style.borderColor = 'var(--border2)';
-                l.style.background = 'var(--card2)';
-            });
-            const lbl = document.querySelector(`label[for="${this.id}"]`);
-            lbl.style.borderColor = 'var(--accent)';
-            lbl.style.background = 'var(--accent-glow)';
-        });
+function validateForm(event) {
+    event.preventDefault();
+    const year     = document.querySelector('input[name="selected_year"]:checked');
+    const branches = document.querySelectorAll('input[name="selected_branches"]:checked');
+    const rooms    = document.querySelectorAll('input[name="selected_rooms"]:checked');
+
+    if (!year || branches.length === 0 || rooms.length === 0) {
+        Swal.fire({ icon:'info', title:'Incomplete', text:'Select Year, Branch(es) and Halls.', confirmButtonColor:'var(--accent)', background:'var(--card)', color:'var(--text)' });
+        return false;
+    }
+
+    // Alternate mode needs at least 2 branches
+    if (activeMode === 'alternate' && branches.length < 2) {
+        Swal.fire({ icon:'warning', title:'Alternate Mode Needs 2+ Branches', text:'Please select at least 2 departments for alternate seating to work.', confirmButtonColor:'var(--accent)', background:'var(--card)', color:'var(--text)' });
+        return false;
+    }
+
+    const modeLabel = activeMode === 'alternate' ? '🔀 Alternate Mode' : activeMode === 'jumbled' ? '🎲 Jumbled Mode' : '📋 Normal Order';
+    Swal.fire({
+        title: 'Generating Plan',
+        html: `Mode: <strong>${modeLabel}</strong><br><small style="color:#94a3b8">Allocating and optimizing...</small>`,
+        background: 'var(--card)', color: 'var(--text)', allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); document.getElementById('allocationForm').submit(); }
     });
-
-    function showBranches(year) {
-        const section = document.getElementById('branchSection');
-        const list = document.getElementById('branchList');
-        section.style.display = 'block';
-        list.innerHTML = '';
-        const brs = ['CSE','AIML','CSDS','MECH','CIVIL','ECE'];
-        brs.forEach(b => {
-            const count = (allStats[year] && allStats[year].branches[b]) || 0;
-            list.innerHTML += `
-                <div>
-                    <input type="checkbox" name="selected_branches" value="${b}" id="br_${b}" style="display:none;" class="branchCheck">
-                    <label for="br_${b}" style="display:block;padding:12px 22px;border:2px solid var(--border2);border-radius:14px;cursor:pointer;font-size:10px;text-transform:uppercase;color:var(--text2);background:var(--card2);transition:all 0.2s;white-space:nowrap;">
-                        ${b} <span style="opacity:0.4;font-family:monospace;margin-left:6px;">${count}</span>
-                    </label>
-                </div>`;
-        });
-        document.querySelectorAll('.branchCheck').forEach(cb => {
-            cb.addEventListener('change', function() {
-                const lbl = document.querySelector(`label[for="${this.id}"]`);
-                if (this.checked) { lbl.style.background='var(--accent)'; lbl.style.color='#fff'; lbl.style.borderColor='var(--accent)'; }
-                else { lbl.style.background='var(--card2)'; lbl.style.color='var(--text2)'; lbl.style.borderColor='var(--border2)'; }
-            });
-        });
-        section.scrollIntoView({ behavior:'smooth', block:'center' });
-    }
-
-    function validateForm(event) {
-        event.preventDefault();
-        const year = document.querySelector('input[name="selected_year"]:checked');
-        const branches = document.querySelectorAll('input[name="selected_branches"]:checked');
-        const rooms = document.querySelectorAll('input[name="selected_rooms"]:checked');
-        if (!year || branches.length === 0 || rooms.length === 0) {
-            Swal.fire({ icon:'info', title:'Incomplete Selection', text:'Please select Year, Branch and Halls.', confirmButtonColor:'var(--accent)', background:'var(--card)', color:'var(--text)' });
-            return false;
-        }
-        Swal.fire({ title:'Generating Plan', text:'Allocating and optimizing...', background:'var(--card)', color:'var(--text)', allowOutsideClick:false,
-            didOpen:() => { Swal.showLoading(); document.getElementById('allocationForm').submit(); }
-        });
-        return true;
-    }
+    return true;
+}
 </script>
