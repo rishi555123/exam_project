@@ -123,7 +123,7 @@ CREATE TABLE room_allocations (
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/your-username/griet-ems.git
+git clone [https://github.com/YOUR_USER_ID/exam_project]
 cd griet-ems
 
 # 2. Install dependencies
